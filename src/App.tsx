@@ -6,6 +6,7 @@ import { RegistryPage } from "@/pages/RegistryPage";
 import { EntityInspectorPage } from "@/pages/EntityInspectorPage";
 import { SchemaPage } from "@/pages/SchemaPage";
 import { StatusPage } from "@/pages/StatusPage";
+import { SecurityPage } from "@/pages/SecurityPage";
 import { Toaster } from "@/components/ui/sonner";
 export default function App() {
   return (
@@ -16,7 +17,7 @@ export default function App() {
         <Route path="/registry/:id" element={<EntityInspectorPage />} />
         <Route path="/schemas" element={<SchemaPage />} />
         <Route path="/status" element={<StatusPage />} />
-        <Route path="/security" element={<div className="p-12 text-center text-muted-foreground">Audit Log Module - Coming Phase 3</div>} />
+        <Route path="/security" element={<SecurityPage />} />
       </Routes>
       <Toaster richColors position="top-right" />
     </AppShell>

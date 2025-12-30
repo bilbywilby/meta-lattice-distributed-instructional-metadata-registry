@@ -1,6 +1,8 @@
+export type EntityType = 'resource' | 'module' | 'assessment' | 'competency';
+export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'ROLLBACK';
 export interface MetadataEntity {
   id: string;
-  type: string;
+  type: EntityType;
   name: string;
   content: Record<string, any>;
   version: number;
@@ -27,6 +29,18 @@ export interface MetadataSchema {
   entityCount: number;
   createdAt: string;
 }
+export interface AuditLog {
+  id: string;
+  timestamp: string;
+  action: AuditAction;
+  entityId: string;
+  actor: string;
+  metadata: {
+    version?: number;
+    previousHash?: string;
+    note?: string;
+  };
+}
 export interface RegistryStats {
   totalEntities: number;
   entityTypeDistribution: Record<string, number>;
@@ -39,4 +53,3 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
 }
-export type EntityType = 'resource' | 'module' | 'assessment' | 'competency';

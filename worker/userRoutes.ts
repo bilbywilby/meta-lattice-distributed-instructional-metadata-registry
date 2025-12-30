@@ -18,6 +18,13 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const data = await stub.getEntity(id);
     return data ? c.json({ success: true, data }) : c.json({ success: false, error: 'Not found' }, 404);
   });
+  app.put('/api/registry/entities/:id', async (c) => {
+    const id = c.req.param('id');
+    const body = await c.req.json();
+    const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+    const data = await stub.updateEntity(id, body);
+    return data ? c.json({ success: true, data }) : c.json({ success: false, error: 'Not found' }, 404);
+  });
   app.get('/api/registry/entities/:id/history', async (c) => {
     const id = c.req.param('id');
     const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
@@ -34,6 +41,11 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const id = c.req.param('id');
     const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
     const data = await stub.deleteEntity(id);
+    return c.json({ success: true, data });
+  });
+  app.get('/api/registry/audit-logs', async (c) => {
+    const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+    const data = await stub.getAuditLogs();
     return c.json({ success: true, data });
   });
   app.get('/api/registry/schemas', async (c) => {
