@@ -1,0 +1,51 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sentinel-config
+data:
+  GEOGRAPHIC_FOCUS: "LEHIGH_VALLEY_PA"
+  REGIONAL_RSS_PROXY: "https://api.valleyhub.org/v1/rss"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sentinel-node
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: sentinel
+  template:
+    metadata:
+      labels:
+        app: sentinel
+    spec:
+      containers:
+      - name: frontend
+        image: gcr.io/lv-hub-prod/sentinel-frontend:v0.8.2
+        ports:
+        - containerPort: 80
+        resources:
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+          requests:
+            cpu: "100m"
+            memory: "256Mi"
+      - name: worker-proxy
+        image: gcr.io/lv-hub-prod/sentinel-worker:v0.8.2
+        envFrom:
+        - configMapRef:
+            name: sentinel-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sentinel-lb
+spec:
+  type: LoadBalancer
+  ports:
+  - port: 80
+    targetPort: 80
+  selector:
+    app: sentinel

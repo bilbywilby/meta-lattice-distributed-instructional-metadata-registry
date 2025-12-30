@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "InstructionalUnit",
+  "description": "The authoritative metadata definition for an instructional resource within the Meta-Lattice registry.",
+  "type": "object",
+  "required": [
+    "id",
+    "type",
+    "title",
+    "version",
+    "status",
+    "author",
+    "content",
+    "schemaVersion"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique identifier for the instructional unit."
+    },
+    "type": {
+      "type": "string",
+      "const": "InstructionalUnit",
+      "description": "The entity type discriminator."
+    },
+    "title": {
+      "type": "string",
+      "minLength": 5,
+      "maxLength": 100,
+      "description": "Human-readable title of the instructional unit."
+    },
+    "summary": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Short description of the resource."
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic versioning string."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["DRAFT", "PUBLISHED", "REVOKED"],
+      "description": "Current lifecycle status of the unit."
+    },
+    "author": {
+      "type": "string",
+      "description": "The Decentralized Identifier (DID) or public key of the authoring node."
+    },
+    "content": {
+      "type": "object",
+      "required": ["format", "value"],
+      "properties": {
+        "format": {
+          "type": "string",
+          "enum": ["MARKDOWN", "URI", "JSON_LD"]
+        },
+        "value": {
+          "type": "string",
+          "description": "The actual content or a reference URI."
+        }
+      }
+    },
+    "tags": {
+      "type": "array",
+      "items": { "type": "string" },
+      "uniqueItems": true
+    },
+    "rights": {
+      "type": "string",
+      "description": "License or usage rights information."
+    },
+    "provenance": {
+      "type": "object",
+      "properties": {
+        "parentUnitId": { "type": "string", "format": "uuid" },
+        "originNode": { "type": "string" }
+      }
+    },
+    "signature": {
+      "type": "string",
+      "description": "Cryptographic signature of the unit payload."
+    },
+    "schemaVersion": {
+      "type": "string",
+      "const": "1.0.0"
+    }
+  },
+  "examples": [
+    {
+      "id": "550e8400-e29b-41d4-a716-446655440000",
+      "type": "InstructionalUnit",
+      "title": "Introduction to Lattice Architectures",
+      "summary": "Core concepts of distributed metadata registries.",
+      "version": "1.0.0",
+      "status": "PUBLISHED",
+      "author": "did:lattice:node_082",
+      "content": {
+        "format": "MARKDOWN",
+        "value": "# Lattice 101\nWelcome to the distributed registry."
+      },
+      "tags": ["CORE", "PROTOCOL"],
+      "schemaVersion": "1.0.0"
+    }
+  ]
+}

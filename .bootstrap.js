@@ -77,20 +77,7 @@ function updateWranglerJsonc() {
 }
 
 function runSetupCommands() {
-    const commands = [
-    "bun add dexie",
-    "bun add dexie-react-hooks",
-    "bun add uuid",
-    "bun add lucide-react@latest",
-    "bun add zod",
-    "bun add react-markdown remark-gfm",
-    "bun add rehype-raw",
-    "bun install react-markdown remark-gfm recharts dexie-react-hooks",
-    "bun add -D @cloudflare/vite-plugin@latest",
-    "bun add recharts@2.15.4",
-    "bun add date-fns",
-    "bun add ajv ajv-formats"
-];
+    const commands = [];
     
     if (commands.length === 0) {
         console.log('⊘ No setup commands to run');
