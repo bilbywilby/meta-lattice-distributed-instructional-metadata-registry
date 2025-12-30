@@ -23,7 +23,6 @@ export class SentinelV4DB extends Dexie {
   wiki_revisions!: Table<WikiRevision>;
   constructor() {
     super('LehighValleyHub_Sentinel_v4');
-    // version 5 is the stable current version
     this.version(5).stores({
       identity: 'nodeId',
       reports: 'id, createdAt, status, geohash',
@@ -36,7 +35,6 @@ export class SentinelV4DB extends Dexie {
       wiki_pages: 'id, slug, category',
       wiki_revisions: 'id, pageId, timestamp'
     });
-    // Handle HMR and multi-tab upgrades gracefully
     this.on("versionchange", () => {
       this.close();
       if (typeof window !== 'undefined') {
@@ -83,7 +81,6 @@ export async function pruneData() {
   }
 }
 if (typeof window !== 'undefined') {
-  // Prune every hour
   setInterval(() => {
     pruneData().catch(console.error);
   }, 60 * 60 * 1000);

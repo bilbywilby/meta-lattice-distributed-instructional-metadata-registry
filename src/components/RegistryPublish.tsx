@@ -1,9 +1,8 @@
 import React, { useState } from 'react';
-import { Send, ShieldCheck, Code, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Send, ShieldCheck, Code, AlertCircle } from 'lucide-react';
 import { db, addLog } from '@/lib/db';
-import { InstructionalUnit, LatticeStatus } from '@shared/types';
+import { InstructionalUnit, LatticeStatus, ApiResponse, ReportStatus } from '@shared/types';
 import { toast } from 'sonner';
-import { cn } from '@/lib/utils';
 export function RegistryPublish() {
   const [title, setTitle] = useState("");
   const [version, setVersion] = useState("1.0.0");
@@ -11,8 +10,12 @@ export function RegistryPublish() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
   const handlePublish = async () => {
-    if (!title || !content) {
+    if (!title.trim() || !content.trim()) {
       toast.error("Required fields: Title, Content");
+      return;
+    }
+    if (!/^\d+\.\d+\.\d+$/.test(version)) {
+      toast.error("Invalid version format. Use SemVer (e.g., 1.0.0)");
       return;
     }
     setIsPublishing(true);
@@ -21,7 +24,7 @@ export function RegistryPublish() {
       id: crypto.randomUUID(),
       type: 'InstructionalUnit',
       title: title.trim(),
-      summary: content.slice(0, 100) + "...",
+      summary: content.slice(0, 100) + (content.length > 100 ? "..." : ""),
       version: version.trim(),
       status: LatticeStatus.PUBLISHED,
       author: "did:lattice:local-node",
@@ -38,26 +41,31 @@ export function RegistryPublish() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(unit)
       });
-      const result = await response.json();
+      const result = await response.json() as ApiResponse;
       if (!response.ok) {
-        setValidationError(result.detail || result.error);
-        throw new Error(result.error);
+        setValidationError(result.detail || result.error || "Registry Ingress Error");
+        toast.error("Registry Ingress Failure");
+        return;
       }
       await db.reports.add({
         id: unit.id,
         title: unit.title,
         street: "Lattice_Registry",
         createdAt: Date.now(),
-        status: 'SYNCED' as any,
+        status: ReportStatus.SYNCED,
         tags: unit.tags,
-        lat: 0, lon: 0, geohash: "LATTICE", mediaIds: []
-      } as any);
-      await addLog("UNIT_PUBLISHED_GLOBAL", "INFO", { id: unit.id });
+        lat: 0, 
+        lon: 0, 
+        geohash: "LATTICE", 
+        mediaIds: []
+      });
+      await addLog("UNIT_PUBLISHED_GLOBAL", "INFO", { id: unit.id, title: unit.title });
       toast.success("Unit Published to Meta-Lattice Registry");
       setTitle("");
       setContent("");
+      setVersion("1.0.0");
     } catch (err) {
-      toast.error("Registry Ingress Failure");
+      toast.error("Network communication failure");
       console.error(err);
     } finally {
       setIsPublishing(false);
@@ -69,7 +77,7 @@ export function RegistryPublish() {
         <h2 className="text-2xl font-black uppercase italic text-white tracking-tighter">Publish_Unit</h2>
         <p className="text-slate-500 font-mono text-[10px] uppercase tracking-widest">Instructional_Metadata_Ingress // AJV_ENFORCED</p>
       </header>
-      <div className="bg-[#040408] border border-slate-900 rounded-4xl p-10 space-y-8">
+      <div className="bg-[#040408] border border-slate-900 rounded-4xl p-10 space-y-8 shadow-2xl">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           <div className="space-y-2">
             <label className="text-[9px] font-bold text-slate-600 uppercase tracking-widest">Unit_Title</label>
@@ -105,7 +113,7 @@ export function RegistryPublish() {
           <div className="p-4 bg-rose-500/5 border border-rose-500/20 rounded-2xl flex gap-4 items-start animate-pulse">
             <AlertCircle className="size-4 text-rose-500 shrink-0 mt-0.5" />
             <div className="space-y-1">
-              <p className="text-[9px] font-bold text-rose-500 uppercase">AJV_Validation_Error</p>
+              <p className="text-[9px] font-bold text-rose-500 uppercase">Registry_Error</p>
               <p className="text-[10px] text-rose-300/60 font-mono leading-relaxed">{validationError}</p>
             </div>
           </div>
@@ -113,7 +121,7 @@ export function RegistryPublish() {
         <div className="flex items-center justify-between pt-6 border-t border-slate-900">
            <div className="flex items-center gap-3 text-slate-600">
              <ShieldCheck className="size-5" />
-             <span className="text-[9px] uppercase tracking-tighter">Payload will be signed via Node_P256_Keys</span>
+             <span className="text-[9px] uppercase tracking-tighter">Payload will be validated against active schema</span>
            </div>
            <button
              onClick={handlePublish}

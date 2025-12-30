@@ -15,6 +15,19 @@ export enum LatticeStatus {
   PUBLISHED = 'PUBLISHED',
   REVOKED = 'REVOKED'
 }
+export enum AggregatorTab {
+  HUB = 'HUB',
+  LOOP = 'LOOP',
+  INTEL = 'INTEL',
+  WIKI = 'WIKI'
+}
+export enum SentinelTab {
+  TERMINAL = 'TERMINAL',
+  REGISTRY = 'REGISTRY',
+  MESH = 'MESH',
+  SCHEMAS = 'SCHEMAS',
+  SPECS = 'SPECS'
+}
 export interface InstructionalUnit {
   id: string;
   type: 'InstructionalUnit';
@@ -41,7 +54,6 @@ export interface ApiResponse<T = unknown> {
   data?: T;
   error?: string;
   detail?: string;
-  [key: string]: any;
 }
 export interface Identity {
   nodeId: string;
@@ -85,5 +97,52 @@ export interface RegistrySchema {
   name: string;
   description: string;
   version: string;
-  fields: any[];
+  fields: SchemaField[];
+}
+export interface SchemaField {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'enum';
+  required: boolean;
+}
+export interface FeedItem {
+  id: string;
+  source: string;
+  title: string;
+  content: string;
+  link?: string;
+  fetchedAt: number;
+  contentHash: string;
+}
+export interface WikiPage {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  content: string;
+  lastModified: number;
+}
+export interface WikiRevision {
+  id: string;
+  pageId: string;
+  author: string;
+  timestamp: number;
+  content: string;
+  summary: string;
+}
+export interface LoopPost {
+  id: string;
+  userId: string;
+  user: string;
+  avatar: string;
+  action: string;
+  location: string;
+  time: string;
+  content: string;
+  likes: number;
+  tags: string[];
+}
+export interface DemoItem {
+  id: string;
+  name: string;
+  value: number;
 }

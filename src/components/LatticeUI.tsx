@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Terminal, Database, ShieldCheck, Activity, Layers, Send, Book, Cpu } from 'lucide-react';
+import { Database, ShieldCheck, Activity, Send, Cpu } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { LatticeTab, Identity } from '@shared/types';
 import { RegistryPublish } from './RegistryPublish';
@@ -12,11 +12,10 @@ import { db } from '@/lib/db';
 import { format } from 'date-fns';
 export function LatticeUI({ identity }: { identity: Identity }) {
   const [activeTab, setActiveTab] = useState<LatticeTab>(LatticeTab.PUBLISH);
-  const unitCount = useLiveQuery(() => db.reports.count()) ?? 0; // Temporarily using reports table for ledger
+  const unitCount = useLiveQuery(() => db.reports.count()) ?? 0;
   const logs = useLiveQuery(() => db.sentinel_logs.orderBy('timestamp').reverse().limit(30).toArray()) ?? [];
   return (
     <div className="flex h-screen bg-[#020205] text-slate-300 font-mono text-[10px] overflow-hidden selection:bg-emerald-500/20">
-      {/* Col 1: Navigation Sidebar */}
       <aside className="w-[240px] border-r border-slate-900 flex flex-col shrink-0 bg-[#040408]/90 z-30">
         <div className="p-8 space-y-6">
           <div className="flex items-center gap-3">
@@ -44,7 +43,6 @@ export function LatticeUI({ identity }: { identity: Identity }) {
           </div>
         </div>
       </aside>
-      {/* Col 2: Content View */}
       <main className="flex-1 overflow-hidden relative">
         <div className="h-full overflow-y-auto scrollbar-hide">
           <AnimatePresence mode="wait">
@@ -64,7 +62,6 @@ export function LatticeUI({ identity }: { identity: Identity }) {
           </AnimatePresence>
         </div>
       </main>
-      {/* Col 3: Diagnostic Stream */}
       <aside className="w-[300px] border-l border-slate-900 bg-[#040408]/60 flex flex-col shrink-0 z-30">
         <header className="p-6 border-b border-slate-900 flex items-center justify-between">
           <span className="text-slate-500 font-bold uppercase tracking-[0.2em]">Diagnostic_Stream</span>
@@ -76,7 +73,7 @@ export function LatticeUI({ identity }: { identity: Identity }) {
            <div className="space-y-2 mt-6">
              <div className="px-2 text-slate-600 font-bold uppercase tracking-widest text-[8px]">Protocol_Events</div>
              <div className="space-y-2 bg-black/40 p-4 rounded-2xl border border-slate-900/50">
-               {logs.map(log => (
+               {logs?.map(log => (
                  <div key={log.id} className="flex gap-2 text-slate-500">
                    <span className="text-slate-700">[{format(log.timestamp, 'HH:mm')}]</span>
                    <span className={cn(
@@ -85,6 +82,7 @@ export function LatticeUI({ identity }: { identity: Identity }) {
                    )}>{log.event}</span>
                  </div>
                ))}
+               {logs?.length === 0 && <div className="text-center py-4 text-slate-700 uppercase italic">Stream_Empty</div>}
              </div>
            </div>
         </div>
@@ -98,7 +96,7 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean, on
       onClick={onClick}
       className={cn(
         "w-full flex items-center gap-4 px-5 py-3.5 rounded-xl transition-all font-bold uppercase tracking-tighter text-[10px]",
-        active ? "bg-slate-900 text-white shadow-xl" : "text-slate-600 hover:text-slate-400"
+        active ? "bg-slate-900 text-emerald-500 shadow-xl" : "text-slate-600 hover:text-slate-400"
       )}
     >
       <Icon className={cn("size-4", active ? "text-emerald-500" : "text-slate-800")} />

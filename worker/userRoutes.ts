@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { Env } from './core-utils';
-import { ApiResponse, InstructionalUnit, LatticeStatus } from '@shared/types';
+import { ApiResponse, InstructionalUnit } from '@shared/types';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import schema from '../shared/schemas/instructional-unit.schema.json';
@@ -8,67 +8,64 @@ const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
 const validate = ajv.compile(schema);
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
-  // Existing health check
   app.get('/api/health', (c) => {
     return c.json({
       success: true,
       data: { status: 'operational', system: 'META_LATTICE_V1.0_PROD' }
-    });
+    } satisfies ApiResponse);
   });
-  // Production Publish Endpoint
   app.post('/api/publish', async (c) => {
     try {
       const body = await c.req.json();
-      // AJV Validation
       const isValid = validate(body);
       if (!isValid) {
-        return c.json({
+        const errResponse: ApiResponse = {
           success: false,
           error: "Schema Validation Failed",
           detail: ajv.errorsText(validate.errors)
-        }, 400);
+        };
+        return c.json(errResponse, 400);
       }
-      const unit = body as InstructionalUnit;
-      // Verification Stub (DID / Signature)
-      const isAuthorized = true; // Placeholder for DID-based auth
-      if (!isAuthorized) {
-        return c.json({ success: false, error: "Unauthorized Node DID" }, 401);
-      }
+      const unit = body as unknown as InstructionalUnit;
       const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
       await stub.saveInstructionalUnit(unit);
-      return c.json({
+      const successResponse: ApiResponse = {
         success: true,
         data: { id: unit.id, status: 'ACCEPTED' }
-      } satisfies ApiResponse, 201);
+      };
+      return c.json(successResponse, 201);
     } catch (err) {
       console.error(`[PUBLISH_ERROR] ${err}`);
-      return c.json({ success: false, error: "Internal Registry Ingress Failure" }, 500);
+      const failResponse: ApiResponse = { success: false, error: "Internal Registry Ingress Failure" };
+      return c.json(failResponse, 500);
     }
   });
-  // Ledger Retrieval
   app.get('/api/v1/ledger', async (c) => {
     try {
       const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
       const units = await stub.getInstructionalUnits();
-      return c.json({
+      const response: ApiResponse<InstructionalUnit[]> = {
         success: true,
         data: units
-      } satisfies ApiResponse<InstructionalUnit[]>);
+      };
+      return c.json(response);
     } catch (err) {
-      return c.json({ success: false, error: "Ledger access denied" }, 500);
+      const failResponse: ApiResponse = { success: false, error: "Ledger access denied" };
+      return c.json(failResponse, 500);
     }
   });
-  // Registry Stats
   app.get('/api/v1/stats', async (c) => {
     try {
       const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
       const stats = await stub.getRegistryStats();
-      return c.json({
+      const response: ApiResponse = {
         success: true,
         data: stats
-      } satisfies ApiResponse);
+      };
+      return c.json(response);
     } catch (err) {
-      return c.json({ success: false, error: "Stats retrieval failure" }, 500);
+      const failResponse: ApiResponse = { success: false, error: "Stats retrieval failure" };
+      return c.json(failResponse, 500);
     }
   });
 }
