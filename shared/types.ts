@@ -1,52 +1,25 @@
-export type EntityType = 'resource' | 'module' | 'assessment' | 'competency';
-export type AuditAction = 'CREATE' | 'UPDATE' | 'DELETE' | 'ROLLBACK';
-export interface MetadataEntity {
-  id: string;
-  type: EntityType;
-  name: string;
-  content: Record<string, any>;
-  version: number;
-  hash: string;
-  schemaId?: string;
-  dependencies: string[];
-  createdAt: string;
-  updatedAt: string;
-}
-export interface EntityHistory {
-  id: string;
-  entityId: string;
-  version: number;
-  hash: string;
-  content: Record<string, any>;
-  updatedAt: string;
-  changeNote?: string;
-}
-export interface MetadataSchema {
-  id: string;
-  name: string;
-  version: number;
-  structure: Record<string, any>;
-  entityCount: number;
+export interface Identity {
+  nodeId: string;
+  publicKey: string;
   createdAt: string;
 }
-export interface AuditLog {
+export interface SentinelLog {
   id: string;
-  timestamp: string;
-  action: AuditAction;
-  entityId: string;
-  actor: string;
-  metadata: {
-    version?: number;
-    previousHash?: string;
-    note?: string;
-  };
+  timestamp: number;
+  event: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  metadata?: Record<string, any>;
 }
-export interface RegistryStats {
-  totalEntities: number;
-  entityTypeDistribution: Record<string, number>;
-  totalTransactions: number;
-  lastUpdate: string;
-  storageUsage: number;
+export interface PrivacyStatus {
+  aesStatus: 'ACTIVE' | 'INACTIVE';
+  pruningStatus: 'ENABLED' | 'STANDBY';
+  jitterLevel: number;
+}
+export interface OutboxItem {
+  id: string;
+  payload: string;
+  encryptedAt: string;
+  destinationNode?: string;
 }
 export interface ApiResponse<T = unknown> {
   success: boolean;
