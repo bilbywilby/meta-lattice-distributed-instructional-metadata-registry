@@ -79,7 +79,8 @@ function updateWranglerJsonc() {
 function runSetupCommands() {
     const commands = [
     "bun add dexie",
-    "bun add dexie-react-hooks"
+    "bun add dexie-react-hooks",
+    "bun add uuid"
 ];
     
     if (commands.length === 0) {
