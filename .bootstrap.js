@@ -88,7 +88,8 @@ function runSetupCommands() {
     "bun install react-markdown remark-gfm recharts dexie-react-hooks",
     "bun add -D @cloudflare/vite-plugin@latest",
     "bun add recharts@2.15.4",
-    "bun add date-fns"
+    "bun add date-fns",
+    "bun add ajv ajv-formats"
 ];
     
     if (commands.length === 0) {
