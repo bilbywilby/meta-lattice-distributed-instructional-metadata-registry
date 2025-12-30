@@ -22,6 +22,7 @@ export interface Report {
   geohash: string;
   mediaIds: string[];
   residencyCommitment?: string;
+  schemaId?: string;
 }
 export interface OutboxItem {
   id: string;
@@ -50,9 +51,10 @@ export interface NewsItem {
   tags: string[];
   title: string;
   content: string;
+  link: string;
   category: 'Economy' | 'Infrastructure' | 'Social' | 'Security';
 }
-export type FeedItem = NewsItem & { 
+export type FeedItem = NewsItem & {
   contentHash: string;
   fetchedAt: number;
 };
@@ -96,4 +98,22 @@ export interface SentinelLog {
   event: string;
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
   metadata?: Record<string, any>;
+}
+export interface SchemaField {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'enum';
+  required: boolean;
+  options?: string[];
+}
+export interface RegistrySchema {
+  id: string;
+  name: string;
+  description: string;
+  version: string;
+  fields: SchemaField[];
+}
+export interface DemoItem {
+  id: string;
+  name: string;
+  value: number;
 }

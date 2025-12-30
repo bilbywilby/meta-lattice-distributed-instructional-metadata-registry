@@ -1,7 +1,6 @@
 import Dexie, { type Table } from 'dexie';
 import {
   Identity,
-  NewsItem,
   FeedItem,
   LoopPost,
   WikiPage,
@@ -9,7 +8,8 @@ import {
   VoltTrace,
   SentinelLog,
   Report,
-  OutboxItem
+  OutboxItem,
+  RegistrySchema
 } from '@shared/types';
 export class ValleyAggregatorDB extends Dexie {
   identity!: Table<Identity>;
@@ -22,9 +22,10 @@ export class ValleyAggregatorDB extends Dexie {
   sentinel_logs!: Table<SentinelLog>;
   reports!: Table<Report>;
   outbox!: Table<OutboxItem>;
+  registry_schemas!: Table<RegistrySchema>;
   constructor() {
-    super('TheValley_v1.2_Aggregator');
-    this.version(2).stores({
+    super('TheValley_v1.3_Aggregator');
+    this.version(3).stores({
       identity: 'nodeId',
       news_cache: 'id, category, fetchedAt, contentHash',
       loop_posts: 'id, timestamp, userId',
@@ -33,8 +34,9 @@ export class ValleyAggregatorDB extends Dexie {
       volt_traces: 'id, timestamp',
       kv_store: 'key',
       sentinel_logs: 'id, timestamp, severity',
-      reports: 'id, status, geohash',
-      outbox: 'id, lastAttempt'
+      reports: 'id, status, geohash, schemaId',
+      outbox: 'id, lastAttempt',
+      registry_schemas: 'id, name, version'
     });
   }
 }

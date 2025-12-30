@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
-import { Activity, Network, List, Settings, Search, RefreshCw, Globe, Shield } from 'lucide-react';
+import { Activity, Network, List, Settings, Search, RefreshCw, Shield } from 'lucide-react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, addLog } from '@/lib/db';
 import { NodeGraph } from './NodeGraph';
 import { SystemSpecs } from './SystemSpecs';
+import { SchemaManager } from './SchemaManager';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 export function IntelModule() {
-  const [subTab, setSubTab] = useState<'TOPOLOGY' | 'LEDGER' | 'SPECS'>('TOPOLOGY');
+  const [subTab, setSubTab] = useState<'TOPOLOGY' | 'LEDGER' | 'SCHEMAS' | 'SPECS'>('TOPOLOGY');
   const [searchTerm, setSearchTerm] = useState("");
   const reports = useLiveQuery(() => db.reports.toArray()) ?? [];
   const [isSyncing, setIsSyncing] = useState(false);
@@ -44,6 +45,7 @@ export function IntelModule() {
         <div className="flex items-center gap-2 bg-slate-900/50 p-1 rounded-xl border border-slate-800">
           <SubTabBtn active={subTab === 'TOPOLOGY'} onClick={() => setSubTab('TOPOLOGY')} icon={Network} label="Topology" />
           <SubTabBtn active={subTab === 'LEDGER'} onClick={() => setSubTab('LEDGER')} icon={List} label="Ledger" />
+          <SubTabBtn active={subTab === 'SCHEMAS'} onClick={() => setSubTab('SCHEMAS')} icon={Shield} label="Schemas" />
           <SubTabBtn active={subTab === 'SPECS'} onClick={() => setSubTab('SPECS')} icon={Settings} label="Specs" />
         </div>
       </header>
@@ -66,8 +68,8 @@ export function IntelModule() {
                 <input 
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Filter by title or geohash..." 
-                  className="w-full bg-black border border-slate-800 rounded-xl pl-10 h-10 text-xs font-mono text-slate-300 outline-none focus:border-emerald-500/50" 
+                  placeholder="Filter by title or geohash..."
+                  className="w-full bg-black border border-slate-800 rounded-xl pl-10 h-10 text-xs font-mono text-slate-300 outline-none focus:border-emerald-500/50"
                 />
               </div>
               <button 
@@ -122,6 +124,7 @@ export function IntelModule() {
             </div>
           </div>
         )}
+        {subTab === 'SCHEMAS' && <SchemaManager />}
         {subTab === 'SPECS' && <SystemSpecs />}
       </main>
     </div>

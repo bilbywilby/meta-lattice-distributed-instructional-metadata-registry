@@ -6,7 +6,6 @@ import {
   Book,
   Zap,
   Menu,
-  X,
   ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -62,7 +61,7 @@ export function AggregatorUI({ identity }: { identity: Identity }) {
             ))}
           </nav>
           <div className="p-4 border-t border-slate-900 space-y-4">
-            <button
+            <button 
               onClick={() => setIsVoltOpen(true)}
               className="w-full h-12 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-700 p-[1px] group transition-all active:scale-95"
             >
@@ -71,11 +70,15 @@ export function AggregatorUI({ identity }: { identity: Identity }) {
                 <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-white">VoltBot Access</span>
               </div>
             </button>
-            <div className="flex items-center gap-3 px-2">
-              <div className="size-8 rounded-full bg-slate-800 border border-slate-700" />
+            <div className="flex items-center gap-3 px-2 group">
+              <div className="size-8 rounded-full bg-slate-800 border border-slate-700 overflow-hidden">
+                <div className="w-full h-full bg-slate-900 animate-pulse" />
+              </div>
               <div className="flex flex-col truncate">
                 <span className="text-[10px] font-mono font-bold text-slate-300 truncate">NODE_{identity.nodeId}</span>
-                <span className="text-[8px] font-mono text-slate-600 uppercase">Status: Online</span>
+                <span className="text-[8px] font-mono text-slate-600 uppercase group-hover:text-emerald-500 transition-colors">
+                  Latency: 14ms
+                </span>
               </div>
             </div>
           </div>
@@ -91,14 +94,17 @@ export function AggregatorUI({ identity }: { identity: Identity }) {
           </div>
           <Zap className="size-6 text-blue-500" onClick={() => setIsVoltOpen(true)} />
         </header>
-        <div className="flex-1 overflow-y-auto scrollbar-hide">
-          <div className="max-w-5xl mx-auto p-6 md:p-10 pb-32">
-            <AnimatePresence mode="wait">
-              {activeTab === AggregatorTab.HUB && <motion.div key="hub" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><HubModule /></motion.div>}
-              {activeTab === AggregatorTab.LOOP && <motion.div key="loop" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><LoopModule /></motion.div>}
-              {activeTab === AggregatorTab.WIKI && <motion.div key="wiki" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><WikiModule /></motion.div>}
-              {activeTab === AggregatorTab.INTEL && <motion.div key="intel" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><IntelModule /></motion.div>}
-            </AnimatePresence>
+        <div className="flex-1 overflow-y-auto">
+          {/* ROOT WRAPPER & GUTTERS */}
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="py-8 md:py-10 lg:py-12">
+              <AnimatePresence mode="wait">
+                {activeTab === AggregatorTab.HUB && <motion.div key="hub" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><HubModule /></motion.div>}
+                {activeTab === AggregatorTab.LOOP && <motion.div key="loop" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><LoopModule /></motion.div>}
+                {activeTab === AggregatorTab.WIKI && <motion.div key="wiki" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><WikiModule /></motion.div>}
+                {activeTab === AggregatorTab.INTEL && <motion.div key="intel" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><IntelModule /></motion.div>}
+              </AnimatePresence>
+            </div>
           </div>
         </div>
       </main>
