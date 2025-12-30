@@ -20,6 +20,7 @@ export async function deriveNodeId(publicKeyBase64: string): Promise<string> {
   const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  // Consistently 12-char hex ID for branding
   return hashHex.slice(0, 12).toUpperCase();
 }
 export async function createResidencyCommitment(address: string, salt: string): Promise<string> {
@@ -30,8 +31,10 @@ export async function createResidencyCommitment(address: string, salt: string): 
   return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }
 export function generateJitteredGeo(lat: number, lon: number) {
-  const jitterLat = (Math.random() - 0.5) * 0.009;
-  const jitterLon = (Math.random() - 0.5) * 0.012;
+  // Exact 0.0045 jitter factor (~500m) as per spec
+  const JITTER_FACTOR = 0.0045;
+  const jitterLat = (Math.random() - 0.5) * JITTER_FACTOR;
+  const jitterLon = (Math.random() - 0.5) * JITTER_FACTOR;
   return {
     lat: lat + jitterLat,
     lon: lon + jitterLon

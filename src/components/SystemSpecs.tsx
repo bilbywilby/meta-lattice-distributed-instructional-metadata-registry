@@ -1,68 +1,103 @@
 import React from "react";
-import { Cpu, ShieldCheck, Database, Fingerprint, Lock, Zap, Server, HardDrive } from "lucide-react";
+import { Cpu, ShieldCheck, Database, Fingerprint, Lock, Server, HardDrive, EyeOff } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { useLiveQuery } from "dexie-react-hooks";
+import { db } from "@/lib/db";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 export function SystemSpecs() {
+  const logs = useLiveQuery(() => db.sentinel_logs.orderBy('timestamp').reverse().limit(15).toArray()) ?? [];
   return (
     <div className="space-y-8 animate-fade-in">
-      <header className="border-l-2 border-blue-500 pl-6 mb-8">
-        <h1 className="text-2xl font-mono font-bold italic text-white uppercase tracking-tight">System_Architecture</h1>
-        <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1">LV_HUB_OS_OS_V0.8.2 // Specification_Log</p>
+      <header className="border-l-2 border-blue-600 pl-4">
+        <h1 className="text-xl font-mono font-bold italic text-white uppercase tracking-tighter">System_Architecture</h1>
+        <p className="text-[9px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-0.5">LV_HUB_OS_SPEC_V0.8.2 // LOGS_ACTIVE</p>
       </header>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <SpecCard 
-          icon={HardDrive} 
-          title="Persistence_Layer" 
-          specs={[
-            { label: "Storage Engine", value: "Dexie.js v4 (IndexedDB)" },
-            { label: "Isolation", value: "Browser Sandbox (LocalFirst)" },
-            { label: "Sync Mode", value: "Optimistic w/ Conflict Resolution" }
-          ]} 
-        />
-        <SpecCard 
-          icon={Fingerprint} 
-          title="Cryptographic_Core" 
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <SpecCard
+          icon={Lock}
+          title="Cryptography_Core"
           specs={[
             { label: "Algorithm", value: "ECDSA P-256 (NIST)" },
-            { label: "Format", value: "SPKI / PKCS#8 (Encoded)" },
-            { label: "Proof Mechanism", value: "SHA-256 Hashing" }
-          ]} 
+            { label: "Identity Hash", value: "SHA-256 (Truncated)" },
+            { label: "Protocol", value: "SPKI Base64 Handshake" }
+          ]}
         />
-        <SpecCard 
-          icon={Lock} 
-          title="Privacy_Enforcement" 
+        <SpecCard
+          icon={HardDrive}
+          title="Storage_Database"
           specs={[
-            { label: "Metadata Scrubbing", value: "ENFORCED ON_INGRESS" },
-            { label: "Geo-Privacy", value: "Jittered Geohash (Precision 6)" },
-            { label: "Identity", value: "Self-Sovereign (No Server Map)" }
-          ]} 
+            { label: "Engine", value: "Dexie v4 (IndexedDB)" },
+            { label: "Bucket", value: "LehighValleyHub_Sentinel_v4" },
+            { label: "Retention", value: "24h Rolling Prune" }
+          ]}
         />
-        <SpecCard 
-          icon={Server} 
-          title="Edge_Handshake" 
+        <SpecCard
+          icon={EyeOff}
+          title="Geo-Masking"
           specs={[
-            { label: "Compute", value: "Cloudflare Workers (V8)" },
-            { label: "Consistency", value: "Strong (Durable Objects)" },
-            { label: "Protocol", value: "HTTPS/3 (QUIC)" }
-          ]} 
+            { label: "Mechanism", value: "Jittered Geohash" },
+            { label: "Variance", value: "±0.0045 Precise" },
+            { label: "Obfuscation", value: "500m Surface Radius" }
+          ]}
         />
+        <SpecCard
+          icon={ShieldCheck}
+          title="Metadata_Stripping"
+          specs={[
+            { label: "Exif Removal", value: "ENFORCED ON_UPLOAD" },
+            { label: "Identity", value: "Self-Sovereign Node" },
+            { label: "Tracing", value: "Antiforensic Enabled" }
+          ]}
+        />
+      </div>
+      <section className="space-y-4">
+        <h2 className="text-[10px] font-mono text-slate-500 uppercase tracking-widest px-1">Scrubbed_Audit_Logs</h2>
+        <div className="bg-[#040408] border border-slate-900 rounded-3xl overflow-hidden shadow-2xl">
+          <div className="max-h-[300px] overflow-y-auto">
+            {logs.map((log) => (
+              <LogLine key={log.id} log={log} />
+            ))}
+            {logs.length === 0 && (
+              <div className="p-10 text-center font-mono text-[9px] text-slate-700 uppercase">No_Recent_Log_Telemetry</div>
+            )}
+          </div>
+        </div>
+      </section>
+    </div>
+  );
+}
+function LogLine({ log }: { log: any }) {
+  return (
+    <div className="flex items-center justify-between px-6 py-3 border-b border-slate-900/50 hover:bg-slate-900/20 transition-colors">
+      <div className="flex items-center gap-4">
+        <span className="text-[9px] font-mono text-slate-600 uppercase">{format(log.timestamp, "HH:mm:ss:SSS")}</span>
+        <span className="text-[10px] font-mono font-bold text-slate-300 uppercase italic truncate max-w-[200px]">{log.event}</span>
+      </div>
+      <div className="flex items-center gap-3">
+        {log.event.includes("SCRUB") || log.event.includes("PRIVACY") || log.event.includes("SUCCESS") ? (
+          <span className="text-[9px] font-mono text-emerald-500 font-bold bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/20">SUCCESS</span>
+        ) : (
+          <span className="text-[9px] font-mono text-blue-500 font-bold bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/20">INFO</span>
+        )}
       </div>
     </div>
   );
 }
 function SpecCard({ icon: Icon, title, specs }: { icon: any, title: string, specs: { label: string, value: string }[] }) {
   return (
-    <Card className="bg-[#040408] border-slate-900 rounded-3xl overflow-hidden group hover:border-blue-500/30 transition-all">
+    <Card className="bg-[#040408] border-slate-900 rounded-3xl overflow-hidden group hover:border-blue-500/20 transition-all duration-500 shadow-xl">
       <CardContent className="p-6 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="size-8 rounded-lg bg-slate-900 flex items-center justify-center">
+          <div className="size-8 rounded-xl bg-slate-900 flex items-center justify-center border border-slate-800">
             <Icon className="size-4 text-blue-500" />
           </div>
-          <h3 className="text-xs font-mono font-bold text-white uppercase italic tracking-widest">{title}</h3>
+          <h3 className="text-[10px] font-mono font-bold text-white uppercase italic tracking-widest">{title}</h3>
         </div>
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {specs.map((spec, i) => (
-            <div key={i} className="flex justify-between items-center text-[10px] font-mono border-b border-slate-900/50 pb-2">
-              <span className="text-slate-500 uppercase tracking-widest">{spec.label}</span>
+            <div key={i} className="flex justify-between items-center text-[10px] font-mono border-b border-slate-900/30 pb-1.5 last:border-0">
+              <span className="text-slate-500 uppercase tracking-tighter">{spec.label}</span>
               <span className="text-slate-300 font-bold uppercase">{spec.value}</span>
             </div>
           ))}
