@@ -83,7 +83,8 @@ function runSetupCommands() {
     "bun add uuid",
     "bun add lucide-react@latest",
     "bun add zod",
-    "bun add react-markdown remark-gfm"
+    "bun add react-markdown remark-gfm",
+    "bun add rehype-raw"
 ];
     
     if (commands.length === 0) {
