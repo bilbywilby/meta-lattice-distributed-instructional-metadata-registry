@@ -16,14 +16,20 @@ export async function generateKeyPair(): Promise<{ publicKey: string; privateKey
 }
 export async function deriveNodeId(publicKeyBase64: string): Promise<string> {
   const encoder = new TextEncoder();
-  const data = encoder.encode(publicKeyBase64);
+  const data = encoder.encode(publicKeyBase64.trim());
   const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   return hashHex.slice(0, 12).toUpperCase();
 }
+export async function createResidencyCommitment(address: string, salt: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(address.toLowerCase().trim() + salt);
+  const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+}
 export function generateJitteredGeo(lat: number, lon: number) {
-  // Add approx ±500m random jitter
   const jitterLat = (Math.random() - 0.5) * 0.009;
   const jitterLon = (Math.random() - 0.5) * 0.012;
   return {
@@ -32,7 +38,6 @@ export function generateJitteredGeo(lat: number, lon: number) {
   };
 }
 export function computeGeohash(lat: number, lon: number): string {
-  // Precision 6 implementation (~1.2km accuracy)
   const chars = "0123456789bcdefghjkmnpqrstuvwxyz";
   let geohash = "";
   let minLat = -90, maxLat = 90;

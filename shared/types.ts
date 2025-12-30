@@ -19,7 +19,8 @@ export enum ReportStatus {
   LOCAL = 'LOCAL',
   QUEUED = 'QUEUED',
   SENT = 'SENT',
-  FAILED = 'FAILED'
+  FAILED = 'FAILED',
+  MESH_SHARED = 'MESH_SHARED'
 }
 export interface Report {
   id: string;
@@ -32,6 +33,7 @@ export interface Report {
   lon: number;
   geohash: string;
   mediaIds: string[];
+  residencyCommitment?: string;
 }
 export interface MediaEntry {
   id: string;
@@ -58,8 +60,14 @@ export interface FeedItem {
   contentHash: string;
   fetchedAt: number;
 }
+export interface MeshPeer {
+  id: string;
+  status: 'searching' | 'connected' | 'idle';
+  latency?: number;
+}
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
   error?: string;
+  [key: string]: any;
 }

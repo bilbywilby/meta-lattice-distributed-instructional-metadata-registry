@@ -5,7 +5,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/health', (c) => {
     return c.json({
       success: true,
-      data: { status: 'operational', system: 'LV_HUB_REGIONAL_OS_V0.6' }
+      data: { status: 'operational', system: 'LV_HUB_REGIONAL_OS_V0.8.2' }
     });
   });
   app.get('/api/v1/sentinel/poll', async (c) => {
@@ -49,7 +49,10 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const report = await c.req.json() as Report;
     const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
     await stub.saveReport(report);
-    return c.json({ success: true, id: report.id } satisfies ApiResponse);
+    return c.json({ 
+      success: true, 
+      data: { id: report.id } 
+    } satisfies ApiResponse);
   });
   app.get('/api/ping', (c) => c.json({ success: true }));
 }

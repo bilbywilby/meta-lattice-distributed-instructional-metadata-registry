@@ -10,8 +10,8 @@ export class ValleyDB extends Dexie {
   feed_cache!: Table<FeedItem>;
   kv_store!: Table<{ key: string; value: any }>;
   constructor() {
-    super('TheValleyHub_DB');
-    this.version(6).stores({
+    super('TheValleyHub_DB_v4');
+    this.version(7).stores({
       identity: 'nodeId',
       sentinel_logs: 'id, timestamp',
       reports: 'id, status, createdAt',
@@ -43,10 +43,8 @@ export async function wipeSession() {
 }
 export async function pruneLogs() {
   const now = Date.now();
-  // 1. Prune System Logs (24h)
   const dayAgo = now - 24 * 60 * 60 * 1000;
   await db.sentinel_logs.where('timestamp').below(dayAgo).delete();
-  // 2. Prune Feed Cache (7 days or 50 items FIFO)
   const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
   await db.feed_cache.where('fetchedAt').below(weekAgo).delete();
   const feedCount = await db.feed_cache.count();

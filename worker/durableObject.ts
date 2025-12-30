@@ -1,5 +1,5 @@
 import { DurableObject } from "cloudflare:workers";
-import { Report } from "@shared/types";
+import { Report, ReportStatus } from "@shared/types";
 export class GlobalDurableObject extends DurableObject {
   private STORAGE_KEY = "registry_reports";
   async getHealth(): Promise<boolean> {
@@ -9,7 +9,7 @@ export class GlobalDurableObject extends DurableObject {
     const reports = await this.ctx.storage.get<Record<string, Report>>(this.STORAGE_KEY) ?? {};
     reports[report.id] = {
       ...report,
-      status: 'SENT' 
+      status: ReportStatus.SENT
     };
     await this.ctx.storage.put(this.STORAGE_KEY, reports);
   }
