@@ -20,27 +20,21 @@ export async function deriveNodeId(publicKeyBase64: string): Promise<string> {
   const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  // Consistently 12-char hex ID for branding
+  // 12-char hex ID for branding v0.8.2
   return hashHex.slice(0, 12).toUpperCase();
 }
-export async function createResidencyCommitment(address: string, salt: string): Promise<string> {
-  const encoder = new TextEncoder();
-  const data = encoder.encode(address.toLowerCase().trim() + salt);
-  const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-}
 export function generateJitteredGeo(lat: number, lon: number) {
-  // Exact 0.0045 jitter factor (~500m) as per spec
-  const JITTER_FACTOR = 0.0045;
-  const jitterLat = (Math.random() - 0.5) * JITTER_FACTOR;
-  const jitterLon = (Math.random() - 0.5) * JITTER_FACTOR;
+  // Exact ±0.0045 jitter factor (~500m) as per spec v0.8.2
+  // lat + (Math.random() * 0.009 - 0.0045)
+  const jitterLat = (Math.random() * 0.009) - 0.0045;
+  const jitterLon = (Math.random() * 0.009) - 0.0045;
   return {
     lat: lat + jitterLat,
     lon: lon + jitterLon
   };
 }
-export function computeGeohash(lat: number, lon: number): string {
+export function computeGeohash(lat: number | null, lon: number | null): string {
+  if (lat === null || lon === null) return "000000";
   const chars = "0123456789bcdefghjkmnpqrstuvwxyz";
   let geohash = "";
   let minLat = -90, maxLat = 90;

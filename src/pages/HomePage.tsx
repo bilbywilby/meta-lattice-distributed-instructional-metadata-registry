@@ -3,29 +3,30 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '@/lib/db';
 import { PrivacyInitializer } from '@/components/PrivacyInitializer';
-import { AggregatorUI } from '@/components/AggregatorUI';
+import { SentinelUI } from '@/components/SentinelUI';
 import { Toaster } from '@/components/ui/sonner';
 import { Cpu } from 'lucide-react';
+import { Identity } from '@shared/types';
 export function HomePage() {
   const [bootStatus, setBootStatus] = useState<'IDLE' | 'BOOTING' | 'READY'>('IDLE');
   const identity = useLiveQuery(() => db.identity.toCollection().first());
   useEffect(() => {
     if (identity && bootStatus === 'IDLE') {
       setBootStatus('BOOTING');
-      const timer = setTimeout(() => setBootStatus('READY'), 1500);
+      const timer = setTimeout(() => setBootStatus('READY'), 2000);
       return () => clearTimeout(timer);
     }
   }, [identity, bootStatus]);
   if (!identity) {
     return (
-      <div className="bg-[#020205]">
+      <div className="bg-[#020205] min-h-screen">
         <PrivacyInitializer onComplete={() => setBootStatus('BOOTING')} />
         <Toaster richColors position="top-center" theme="dark" />
       </div>
     );
   }
   return (
-    <div className="min-h-screen bg-[#020205] text-slate-200">
+    <div className="min-h-screen bg-[#020205] text-slate-200 selection:bg-blue-500/30">
       <AnimatePresence mode="wait">
         {bootStatus === 'BOOTING' ? (
           <motion.div
@@ -45,14 +46,14 @@ export function HomePage() {
                 </motion.div>
               </div>
               <div className="space-y-2.5 font-mono text-[10px] uppercase tracking-widest text-slate-600 italic">
-                <BootLine label="Orchestrator_Handshake" delay={0.2} />
-                <BootLine label="Aggregator_v1.1_Load" delay={0.5} />
-                <BootLine label="Neural_Vector_Sync" delay={0.8} />
-                <BootLine label="Valley_OS_Stable" delay={1.1} />
+                <BootLine label="Kernel_Auth" delay={0.2} />
+                <BootLine label="Local_Enc_FS" delay={0.6} />
+                <BootLine label="Node_Handshake" delay={1.0} />
+                <BootLine label="Sentinel_V3_Ready" delay={1.4} />
               </div>
               <motion.div
                 initial={{ width: 0 }} animate={{ width: "100%" }}
-                transition={{ duration: 1.2, ease: "easeInOut" }}
+                transition={{ duration: 1.8, ease: "easeInOut" }}
                 className="h-1 bg-blue-500/10 rounded-full overflow-hidden"
               >
                 <div className="h-full bg-blue-600 w-full animate-pulse shadow-[0_0_10px_rgba(37,99,235,0.5)]" />
@@ -60,8 +61,8 @@ export function HomePage() {
             </div>
           </motion.div>
         ) : (
-          <motion.div key="ui" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <AggregatorUI identity={identity} />
+          <motion.div key="ui" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="h-full">
+            <SentinelUI identity={identity as Identity} />
           </motion.div>
         )}
       </AnimatePresence>
