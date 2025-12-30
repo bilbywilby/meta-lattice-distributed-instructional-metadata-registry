@@ -10,6 +10,7 @@ import { LocalFeed } from "@/components/LocalFeed";
 import { SentinelRegistry } from "@/components/SentinelRegistry";
 import { MeshTopology } from "@/components/MeshTopology";
 import { SystemSpecs } from "@/components/SystemSpecs";
+import { NodeGraph } from "@/components/NodeGraph";
 export function PrivacyUI({ identity }: { identity: Identity }) {
   const [activeTab, setActiveTab] = useState("SENTINEL");
   const { queueSize, isSyncing, isOnline } = useOutboxSync();
@@ -43,6 +44,7 @@ export function PrivacyUI({ identity }: { identity: Identity }) {
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
           <NavBtn icon={Activity} label="Sentinel_Uplink" active={activeTab === "SENTINEL"} onClick={() => setActiveTab("SENTINEL")} />
           <NavBtn icon={Database} label="Registry_Ledger" active={activeTab === "REGISTRY"} onClick={() => setActiveTab("REGISTRY")} />
+          <NavBtn icon={Network} label="Network_Topology" active={activeTab === "TOPOLOGY"} onClick={() => setActiveTab("TOPOLOGY")} />
           <NavBtn icon={Share2} label="P2P_Mesh" active={activeTab === "MESH"} onClick={() => setActiveTab("MESH")} />
           <NavBtn icon={Zap} label="Regional_Feed" active={activeTab === "FEED"} onClick={() => setActiveTab("FEED")} />
           <NavBtn icon={Cpu} label="System_Specs" active={activeTab === "SYSTEM"} onClick={() => setActiveTab("SYSTEM")} />
@@ -88,6 +90,7 @@ export function PrivacyUI({ identity }: { identity: Identity }) {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-10 lg:py-12">
             {activeTab === "SENTINEL" && <SentinelInput />}
             {activeTab === "REGISTRY" && <SentinelRegistry />}
+            {activeTab === "TOPOLOGY" && <NodeGraph />}
             {activeTab === "MESH" && <MeshTopology />}
             {activeTab === "FEED" && <LocalFeed />}
             {activeTab === "SYSTEM" && <SystemSpecs />}

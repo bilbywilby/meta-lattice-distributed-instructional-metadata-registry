@@ -22,6 +22,21 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       }
     } satisfies ApiResponse);
   });
+  app.get('/api/v1/reports', async (c) => {
+    try {
+      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+      const reports = await stub.getReports();
+      return c.json({
+        success: true,
+        data: reports
+      } satisfies ApiResponse<Report[]>);
+    } catch (err) {
+      return c.json({
+        success: false,
+        error: "Registry access denied"
+      } satisfies ApiResponse, 500);
+    }
+  });
   app.get('/api/v1/rss/regional', (c) => {
     return c.json({
       success: true,
@@ -49,9 +64,9 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     const report = await c.req.json() as Report;
     const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
     await stub.saveReport(report);
-    return c.json({ 
-      success: true, 
-      data: { id: report.id } 
+    return c.json({
+      success: true,
+      data: { id: report.id }
     } satisfies ApiResponse);
   });
   app.get('/api/ping', (c) => c.json({ success: true }));
