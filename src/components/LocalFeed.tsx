@@ -10,7 +10,7 @@ export function LocalFeed() {
   const articles = useLiveQuery(() => db.feed_cache.orderBy('fetchedAt').reverse().toArray()) ?? [];
   const [loading, setLoading] = useState(false);
   const isFetching = useRef(false);
-  const fetchFeed = async (manual = false) => {
+  const fetchFeed = React.useCallback(async (manual = false) => {
     if (isFetching.current) return;
     // Auto-fetch prevention: only sync if cache is empty or manual, or if last item is older than 30 mins
     const now = Date.now();
@@ -46,10 +46,10 @@ export function LocalFeed() {
       setLoading(false);
       isFetching.current = false;
     }
-  };
+  }, [articles]);
   useEffect(() => {
     fetchFeed(false);
-  }, []);
+  }, [fetchFeed]);
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between border-l-2 border-emerald-500 pl-6 mb-8">

@@ -87,7 +87,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         return c.json({
           success: false,
           error: "Malformed metadata rejected",
-          detail: validation.error.errors.map(e => e.path.join('.') + ': ' + e.message).join(', ')
+          detail: validation.error.issues.map((e: z.ZodIssue) => e.path.join('.') + ': ' + e.message).join(', ')
         }, 400);
       }
       const report = validation.data as Report;

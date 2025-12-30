@@ -3,10 +3,12 @@ import { Activity, Database, Network, Share2, Cpu, Trash2, Wifi, WifiOff, Refres
 import { cn } from "@/lib/utils";
 import { wipeSession } from "@/lib/db";
 import { Identity } from "@shared/types";
+import { BookOpen } from "lucide-react";
 import { useOutboxSync } from "@/hooks/use-outbox";
 import { SentinelInput } from "@/components/SentinelInput";
 import { LocalFeed } from "@/components/LocalFeed";
 import { SentinelRegistry } from "@/components/SentinelRegistry";
+import { WikiModule } from "@/components/WikiModule";
 import { MeshTopology } from "@/components/MeshTopology";
 import { SystemSpecs } from "@/components/SystemSpecs";
 import { NodeGraph } from "@/components/NodeGraph";
@@ -47,6 +49,7 @@ export function PrivacyUI({ identity }: { identity: Identity }) {
           <NavBtn icon={Network} label="Topology" active={activeTab === "TOPOLOGY"} onClick={() => setActiveTab("TOPOLOGY")} />
           <NavBtn icon={Share2} label="P2P Mesh" active={activeTab === "MESH"} onClick={() => setActiveTab("MESH")} />
           <NavBtn icon={Cpu} label="System" active={activeTab === "SYSTEM"} onClick={() => setActiveTab("SYSTEM")} />
+          <NavBtn icon={BookOpen} label="Wiki" active={activeTab === "WIKI"} onClick={() => setActiveTab("WIKI")} />
         </nav>
         <div className="p-4 border-t border-slate-900 space-y-4">
           <div className="flex items-center justify-between px-3 py-2 bg-slate-900/50 rounded-xl border border-slate-800">
@@ -89,6 +92,7 @@ export function PrivacyUI({ identity }: { identity: Identity }) {
             {activeTab === "TOPOLOGY" && <NodeGraph />}
             {activeTab === "MESH" && <MeshTopology />}
             {activeTab === "SYSTEM" && <SystemSpecs />}
+            {activeTab === "WIKI" && <WikiModule />}
           </div>
         </main>
       </div>

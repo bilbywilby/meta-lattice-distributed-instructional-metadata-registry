@@ -6,62 +6,41 @@ export interface WikiPage {
 }
 export const WIKI_PAGES: WikiPage[] = [
   {
-    id: 'quickstart',
-    title: 'Node_Quickstart',
-    category: 'Onboarding',
-    content: `
-# Quickstart Guide v0.8.2
-Follow these steps to initialize your node and join the Lehigh Valley Meta-Lattice.
-## 1. Identity Generation
-Upon first launch, the **Privacy_Initializer** will generate a P-256 keypair locally.
-- **Action**: Click "Generate_P256_Keys".
-- **Result**: Your Node ID is derived from the SHA-256 hash of your Public Key.
-## 2. Your First Publish
-Navigate to **Unit_Publish** to ingress metadata.
-- **Title**: Project_Delta_01
-- **Content**: Markdown body defining your instructional resource.
-- **Verification**: The system signs the payload using your private key before transmission.
-## 3. Monitoring
-View the **Topology** map to see your node's relationship with the regional registry.
-`
-  },
-  {
-    id: 'infrastructure',
-    title: 'Infrastructure_Path',
-    category: 'Ops',
-    content: `
-# Production Infrastructure
-LV Hub OS supports hybrid deployment paths for maximum resilience.
-## Kubernetes (K8s)
-Nodes can be deployed as containerized pods using the infra/k8s-sentinel.yaml manifest.
-- **Service Type**: LoadBalancer
-- **Persistence**: Managed via Durable Objects + regional KV caching.
-## Cloud Run (Serverless)
-Used for the primary API worker and frontend distribution.
-- **Canary Strategy**: 10% traffic split via scripts/deploy_canary.sh.
-- **Health Checks**: Automated smoke tests verify /api/health system strings.
-`
-  },
-  {
     id: 'system-overview',
     title: 'System_Architecture',
     category: 'Core',
     content: `
-# LV Hub OS v0.8.2 // Production
+# LV Hub OS v0.8.2 // System Architecture
 Meta-Lattice serves as a high-performance, edge-resident registry for instructional metadata.
-## Core Pillars
-- **Integrity**: Every packet is signed; every schema is enforced via AJV.
-- **Privacy**: No raw addresses. No tracking. 500m coordinate jitter.
-- **Resilience**: P2P Mesh fallback when the global registry is unreachable.
-## Glossary
-- **Lattice**: The distributed ledger of instructional units.
-- **Sentinel**: The ingress module for regional observations.
-- **Jitter**: The mathematical noise applied to GPS data.
-- **Geohash**: A 6-character spatial identifier.
+## Core Components
+- **Identity Layer**: P-256 Elliptic Curve Digital Signatures.
+- **Storage Layer**: IndexedDB (Dexie) with 24h rolling pruning.
+- **Network Layer**: Cloudflare Durable Objects + P2P WebRTC Mesh.
+## Data Lifecycle
+1. **Ingress**: Data entered via Sentinel Uplink.
+2. **Validation**: Zod-enforced schema checks.
+3. **Masking**: Geo-jitter (±0.0045) and SHA-256 address hashing.
+4. **Broadcast**: Distributed to regional mesh nodes.
 `
   },
   {
-    id: 'geo-jitter-spec',
+    id: 'sentinel-uplink',
+    title: 'Sentinel_Protocols',
+    category: 'Sentinel',
+    content: `
+# Sentinel Ingress Protocols
+The Sentinel module handles the safe ingestion of regional observations.
+## Geo-Privacy Masking
+To prevent forensic tracking of nodes, the following transformations are applied:
+- **Jitter**: Random coordinate offset within a 500m radius.
+- **Geohashing**: 6-character precision mask for regional clustering.
+- **Residency Proof**: Cross-streets are salted and hashed; raw text is never transmitted to the global registry.
+## Uplink Sync
+Reports are stored in a local **Outbox** and synchronized with the Durable Object when a network connection is established.
+`
+  },
+  {
+    id: 'privacy-jitters',
     title: 'Geo_Jitter_Spec',
     category: 'Privacy',
     content: `
@@ -73,7 +52,22 @@ const jitterLat = (Math.random() - 0.5) * JITTER_FACTOR;
 const jitterLon = (Math.random() - 0.5) * JITTER_FACTOR;
 \`\`\`
 ## Deterministic Geohash
-We use a base32 geohash algorithm to provide regional context without point-accuracy.
+We use a base32 geohash algorithm to provide regional context without point-accuracy. This allows for spatial queries (clustering) while maintaining individual node anonymity.
+`
+  },
+  {
+    id: 'mesh-networking',
+    title: 'Mesh_P2P_Sync',
+    category: 'Mesh',
+    content: `
+# Mesh P2P Topology
+LV Hub OS utilizes a browser-to-browser synchronization layer.
+## Protocol Stack
+- **Signaling**: Handled via Durable Object state updates.
+- **Transport**: WebRTC SCTP DataChannels.
+- **Encryption**: DTLS-SRTP (Mandatory).
+## Telemetry Sharing
+Nodes share high-level registry hashes to detect desynchronization. If a delta is detected, missing reports are fetched via the command-query interface.
 `
   }
 ];
