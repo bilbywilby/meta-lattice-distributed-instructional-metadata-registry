@@ -1,18 +1,22 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db, addLog } from '@/lib/db';
-import { OutboxItem, Report, ReportStatus, SyncBatchStatus } from '@shared/types';
+import { ReportStatus, SyncBatchStatus } from '@shared/types';
 import { useLiveQuery } from 'dexie-react-hooks';
 export function useOutboxSync() {
   const [syncStatus, setSyncStatus] = useState<SyncBatchStatus>(SyncBatchStatus.IDLE);
   const syncLock = useRef(false);
+  const lastSyncTime = useRef(0);
   const liveQueue = useLiveQuery(() => db.outbox.orderBy('id').toArray());
   const queue = useMemo(() => liveQueue ?? [], [liveQueue]);
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
   const processQueue = useCallback(async () => {
+    // Prevent overlapping syncs or rapid fire calls
     if (syncLock.current || !isOnline || queue.length === 0) return;
+    const now = Date.now();
+    if (now - lastSyncTime.current < 5000) return; // Minimum 5s between batch attempts
     syncLock.current = true;
+    lastSyncTime.current = now;
     setSyncStatus(SyncBatchStatus.BATCHING);
-    // Strictly batch 5 items per cycle as per Android WorkManager spec
     const batchSize = 5;
     const batch = queue.slice(0, batchSize);
     await addLog("WORK_MANAGER_DISPATCH", "INFO", { batch_size: batch.length });
@@ -50,12 +54,14 @@ export function useOutboxSync() {
       }
     }
     setSyncStatus(SyncBatchStatus.SUCCESS);
-    setTimeout(() => setSyncStatus(SyncBatchStatus.IDLE), 2000);
-    syncLock.current = false;
+    setTimeout(() => {
+      setSyncStatus(SyncBatchStatus.IDLE);
+      syncLock.current = false;
+    }, 2000);
   }, [isOnline, queue]);
   useEffect(() => {
     if (isOnline && queue.length > 0) {
-      const timer = setTimeout(processQueue, 10000); // 10s intervals for batch processing
+      const timer = setTimeout(processQueue, 3000);
       return () => clearTimeout(timer);
     }
   }, [isOnline, queue.length, processQueue]);

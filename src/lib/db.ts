@@ -23,12 +23,12 @@ export class SentinelV4DB extends Dexie {
   wiki_revisions!: Table<WikiRevision>;
   constructor() {
     super('LehighValleyHub_Sentinel_v4');
-    this.version(5).stores({
+    this.version(6).stores({
       identity: 'nodeId',
-      reports: 'id, createdAt, status, geohash',
+      reports: 'id, createdAt, status, geohash, parentUnitId',
       outbox: 'id, lastAttempt',
       kv_store: 'key',
-      sentinel_logs: '++id, timestamp, severity',
+      sentinel_logs: '++id, timestamp, severity, componentTag',
       registry_schemas: 'id, name, version',
       news_cache: 'id, contentHash, fetchedAt',
       volt_traces: '++id, timestamp',
@@ -38,7 +38,7 @@ export class SentinelV4DB extends Dexie {
     this.on("versionchange", () => {
       this.close();
       if (typeof window !== 'undefined') {
-        console.warn("[DATABASE] New version detected. Connection closed to allow upgrade.");
+        console.warn("[DATABASE] Migration detected. Session terminating.");
       }
     });
   }
@@ -50,6 +50,7 @@ export async function addLog(event: string, severity: SentinelLog['severity'] = 
       timestamp: Date.now(),
       event,
       severity,
+      componentTag: "WEB_PORT_CORE",
       metadata
     };
     await db.sentinel_logs.add(log as any);

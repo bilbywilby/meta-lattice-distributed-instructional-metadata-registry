@@ -26,13 +26,13 @@ export function NodeGraph() {
   const activeReports = graphMode === 'LOCAL' ? localReports : globalReports;
   const particles = useMemo(() => {
     const p: Particle[] = [];
-    for (let i = 0; i < 200; i++) {
+    for (let i = 0; i < 150; i++) {
       p.push({
         x: Math.random() * 800,
         y: Math.random() * 600,
-        vx: (Math.random() - 0.5) * 0.3,
-        vy: (Math.random() - 0.5) * 0.3,
-        size: Math.random() * 1.5 + 0.5,
+        vx: (Math.random() - 0.5) * 0.2,
+        vy: (Math.random() - 0.5) * 0.2,
+        size: Math.random() * 1.2 + 0.4,
       });
     }
     return p;
@@ -52,50 +52,58 @@ export function NodeGraph() {
     };
     window.addEventListener('resize', handleResize);
     handleResize();
+    const getPos = (geohash: string) => {
+      if (!geohash) return { x: 0, y: 0 };
+      const x = (geohash.charCodeAt(0) * 17.7 + (geohash.charCodeAt(1) || 0) * 9.3) % canvas.width;
+      const y = ((geohash.charCodeAt(1) || 0) * 21.3 + (geohash.charCodeAt(2) || 0) * 13.2) % canvas.height;
+      return { x, y };
+    };
     const render = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       // Background Grid
       ctx.strokeStyle = '#0f172a';
       ctx.lineWidth = 1;
-      const step = 40;
+      const step = 50;
       for (let x = 0; x < canvas.width; x += step) {
         ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
       }
       for (let y = 0; y < canvas.height; y += step) {
         ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
       }
-      // Floating Particles
-      particles.forEach((p, i) => {
-        p.x += p.vx; p.y += p.vy;
-        if (p.x < 0) p.x = canvas.width;
-        if (p.x > canvas.width) p.x = 0;
-        if (p.y < 0) p.y = canvas.height;
-        if (p.y > canvas.height) p.y = 0;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-        ctx.fillStyle = i % 20 === 0 ? '#334155' : '#1e293b';
-        ctx.fill();
+      // DAG Dependency Lines
+      ctx.lineWidth = 0.5;
+      activeReports.forEach(r => {
+        if (r.parentUnitId) {
+          const parent = activeReports.find(p => p.id === r.parentUnitId);
+          if (parent) {
+            const start = getPos(r.geohash);
+            const end = getPos(parent.geohash);
+            ctx.beginPath();
+            ctx.moveTo(start.x, start.y);
+            ctx.lineTo(end.x, end.y);
+            ctx.strokeStyle = 'rgba(59, 130, 246, 0.15)';
+            ctx.stroke();
+          }
+        }
       });
       // Node Rendering
       activeReports.forEach((r) => {
-        if (!r.geohash || r.geohash.length < 2) return;
-        // Pseudo-deterministic position based on geohash characters
-        const x = (r.geohash.charCodeAt(0) * 13.7 + r.geohash.charCodeAt(1) * 7.3) % canvas.width;
-        const y = (r.geohash.charCodeAt(1) * 17.3 + r.geohash.charCodeAt(0) * 11.2) % canvas.height;
+        const { x, y } = getPos(r.geohash);
         const isLocal = r.status === 'LOCAL';
-        const pulse = Math.sin(Date.now() / 400) * 4;
+        const pulse = Math.sin(Date.now() / 600) * 2;
         ctx.beginPath();
-        ctx.arc(x, y, 6 + pulse, 0, Math.PI * 2);
-        ctx.fillStyle = isLocal ? 'rgba(59, 130, 246, 0.2)' : 'rgba(16, 185, 129, 0.2)';
+        ctx.arc(x, y, 5 + pulse, 0, Math.PI * 2);
+        ctx.fillStyle = isLocal ? 'rgba(59, 130, 246, 0.1)' : 'rgba(16, 185, 129, 0.1)';
         ctx.fill();
         ctx.beginPath();
-        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.arc(x, y, 3, 0, Math.PI * 2);
         ctx.fillStyle = isLocal ? '#3b82f6' : '#10b981';
         ctx.fill();
-        // Label
-        ctx.fillStyle = '#64748b';
-        ctx.font = '8px JetBrains Mono';
-        ctx.fillText(r.title.slice(0, 10), x + 10, y + 4);
+        if (canvas.width > 500) {
+          ctx.fillStyle = '#475569';
+          ctx.font = '7px JetBrains Mono';
+          ctx.fillText(r.title.slice(0, 12), x + 8, y + 3);
+        }
       });
       animationFrame = requestAnimationFrame(render);
     };
@@ -109,8 +117,8 @@ export function NodeGraph() {
     <div className="space-y-6">
       <header className="border-l-2 border-emerald-500 pl-6 mb-8 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-mono font-bold italic text-white uppercase tracking-tight">Node_Topology</h1>
-          <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1">LV_Mesh_Visualizer // Nodes: {activeReports.length}</p>
+          <h1 className="text-2xl font-mono font-bold italic text-white uppercase tracking-tight">Lattice_Topology</h1>
+          <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1">DAG_Visualizer // Relationships: {activeReports.filter(r => r.parentUnitId).length}</p>
         </div>
         <div className="flex bg-slate-900/50 border border-slate-800 rounded-xl p-1">
           <button onClick={() => setGraphMode('LOCAL')} className={cn("flex items-center gap-2 px-3 py-1.5 rounded-lg text-[9px] font-mono font-bold uppercase transition-all", graphMode === 'LOCAL' ? "bg-blue-600 text-white" : "text-slate-500")}>
@@ -124,8 +132,8 @@ export function NodeGraph() {
       <div className="relative aspect-video rounded-3xl border border-slate-900 bg-[#040408] overflow-hidden group">
         <canvas ref={canvasRef} className="w-full h-full" />
         <div className="absolute bottom-6 right-6 flex flex-col gap-2">
-           <LegendItem color="bg-blue-500" label="Local_Node" />
-           <LegendItem color="bg-emerald-500" label="Regional_Registry" />
+           <LegendItem color="bg-blue-500" label="Observation_Node" />
+           <LegendItem color="bg-emerald-500" label="Registry_Root" />
         </div>
       </div>
     </div>
