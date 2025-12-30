@@ -1,13 +1,13 @@
 import React from "react";
 import { Lock, HardDrive, EyeOff, ShieldCheck, Book, ExternalLink, Activity, Cloud } from "lucide-react";
-import { Card, CardContent } from "@/components/ui/card";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { SentinelLog } from "@shared/types";
 export function SystemSpecs() {
-  const logs = useLiveQuery(() => db.sentinel_logs.orderBy('timestamp').reverse().limit(15).toArray()) ?? [];
+  const liveLogs = useLiveQuery(() => db.sentinel_logs.orderBy('timestamp').reverse().limit(15).toArray());
+  const logs = React.useMemo(() => (liveLogs as SentinelLog[]) ?? [], [liveLogs]);
   return (
     <div className="space-y-8 animate-fade-in">
       <header className="border-l-2 border-emerald-500 pl-4 flex items-center justify-between">
@@ -32,7 +32,7 @@ export function SystemSpecs() {
             <Activity className="size-3" /> Production_Audit_Stream
           </h2>
           <div className="bg-[#040408] border border-slate-900 rounded-3xl overflow-hidden shadow-2xl">
-            <div className="max-h-[350px] overflow-y-auto scrollbar-hide">
+            <div className="max-h-[350px] overflow-y-auto scrollbar-hide divide-y divide-slate-900/50">
               {logs.map((log) => (
                 <LogLine key={log.id} log={log} />
               ))}
@@ -44,14 +44,14 @@ export function SystemSpecs() {
         </div>
         <aside className="space-y-6">
           <h2 className="text-[10px] font-mono text-slate-500 uppercase tracking-widest px-1">Resources</h2>
-          <DocumentationCard 
-            title="Technical_Spec" 
-            desc="Schema definitions & API endpoints" 
+          <DocumentationCard
+            title="Technical_Spec"
+            desc="Schema definitions & API endpoints"
             link="/docs/TECHNICAL_SPEC.md"
           />
-          <DocumentationCard 
-            title="Deployment_Guide" 
-            desc="K8s and Cloud Run manifests" 
+          <DocumentationCard
+            title="Deployment_Guide"
+            desc="K8s and Cloud Run manifests"
             link="/docs/TECHNICAL_SPEC.md#05-deploy"
           />
           <div className="p-6 rounded-3xl bg-blue-600/5 border border-blue-500/20 space-y-3">
@@ -66,28 +66,38 @@ export function SystemSpecs() {
   );
 }
 function LogLine({ log }: { log: SentinelLog }) {
-  const isCanaryEvent = log.event.includes('CANARY') || log.event.includes('DEPLOY');
+  const isCanaryEvent = log.event?.includes('CANARY') || log.event?.includes('DEPLOY');
+  const metadataString = React.useMemo(() => {
+    if (!log.metadata) return null;
+    try {
+      return Object.entries(log.metadata)
+        .map(([k, v]) => `${k}:${v}`)
+        .join(' | ');
+    } catch (e) {
+      return null;
+    }
+  }, [log.metadata]);
   return (
-    <div className="flex items-center justify-between px-6 py-3 border-b border-slate-900/50 hover:bg-slate-900/20 transition-colors">
+    <div className="flex items-center justify-between px-6 py-3 hover:bg-slate-900/20 transition-colors">
       <div className="flex items-center gap-4 overflow-hidden">
-        <span className="text-[9px] font-mono text-slate-600 shrink-0">{format(log.timestamp, "HH:mm:ss")}</span>
+        <span className="text-[9px] font-mono text-slate-600 shrink-0">{format(log.timestamp || Date.now(), "HH:mm:ss")}</span>
         <div className="flex flex-col truncate">
           <span className={cn(
             "text-[10px] font-mono font-bold uppercase italic truncate",
             isCanaryEvent ? "text-blue-400" : "text-slate-300"
-          )}>{log.event}</span>
-          {log.metadata && (
+          )}>{log.event || 'UNKNOWN_EVENT'}</span>
+          {metadataString && (
             <span className="text-[8px] font-mono text-slate-600 truncate">
-              {Object.entries(log.metadata).map(([k, v]) => `${k}:${v}`).join(' | ')}
+              {metadataString}
             </span>
           )}
         </div>
       </div>
       <span className={cn(
-        "text-[9px] font-mono font-bold px-2 py-0.5 rounded border",
+        "text-[9px] font-mono font-bold px-2 py-0.5 rounded border shrink-0",
         log.severity === 'CRITICAL' ? "text-rose-500 border-rose-500/20" : "text-emerald-500 border-emerald-500/20"
       )}>
-        {log.severity}
+        {log.severity || 'INFO'}
       </span>
     </div>
   );
@@ -107,7 +117,7 @@ function SpecCard({ icon: Icon, title, value }: { icon: any, title: string, valu
 }
 function DocumentationCard({ title, desc, link }: { title: string, desc: string, link: string }) {
   return (
-    <div className="p-6 rounded-3xl bg-[#040408] border border-slate-900 space-y-2 group hover:border-emerald-500/30 transition-all">
+    <div className="p-6 rounded-3xl bg-[#040408] border border-slate-900 space-y-2 group hover:border-emerald-500/30 transition-all cursor-pointer">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Book className="size-3 text-emerald-500" />

@@ -13,7 +13,7 @@ export const WIKI_PAGES: WikiPage[] = [
 # Quickstart Guide v0.8.2
 Follow these steps to initialize your node and join the Lehigh Valley Meta-Lattice.
 ## 1. Identity Generation
-Upon first launch, the **Privacy_Initializer** will generate a P-256 keypair locally. 
+Upon first launch, the **Privacy_Initializer** will generate a P-256 keypair locally.
 - **Action**: Click "Generate_P256_Keys".
 - **Result**: Your Node ID is derived from the SHA-256 hash of your Public Key.
 ## 2. Your First Publish
@@ -33,13 +33,13 @@ View the **Topology** map to see your node's relationship with the regional regi
 # Production Infrastructure
 LV Hub OS supports hybrid deployment paths for maximum resilience.
 ## Kubernetes (K8s)
-Nodes can be deployed as containerized pods using the `infra/k8s-sentinel.yaml` manifest.
+Nodes can be deployed as containerized pods using the infra/k8s-sentinel.yaml manifest.
 - **Service Type**: LoadBalancer
 - **Persistence**: Managed via Durable Objects + regional KV caching.
 ## Cloud Run (Serverless)
 Used for the primary API worker and frontend distribution.
-- **Canary Strategy**: 10% traffic split via `scripts/deploy_canary.sh`.
-- **Health Checks**: Automated smoke tests verify `/api/health` system strings.
+- **Canary Strategy**: 10% traffic split via scripts/deploy_canary.sh.
+- **Health Checks**: Automated smoke tests verify /api/health system strings.
 `
   },
   {

@@ -11,14 +11,10 @@ export function LocalFeed() {
   const articles = useMemo(() => (liveArticles as FeedItem[]) ?? [], [liveArticles]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const isFetching = useRef(false);
+  const isFetchingRef = useRef(false);
   const fetchFeed = React.useCallback(async (manual = false) => {
-    if (isFetching.current) return;
-    const now = Date.now();
-    const lastFetch = articles[0]?.fetchedAt ?? 0;
-    // Prevent spam: only fetch if data is > 10 mins old or manual refresh
-    if (!manual && articles.length > 0 && (now - lastFetch < 10 * 60 * 1000)) return;
-    isFetching.current = true;
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -44,12 +40,17 @@ export function LocalFeed() {
       setError("Connectivity_Fault: RSS_Proxy_Down");
     } finally {
       setLoading(false);
-      isFetching.current = false;
+      isFetchingRef.current = false;
     }
-  }, [articles]);
+  }, []); // Removed articles dependency to prevent render loop
   useEffect(() => {
-    fetchFeed(false);
-  }, [fetchFeed]);
+    const lastFetch = articles[0]?.fetchedAt ?? 0;
+    const now = Date.now();
+    // Only auto-fetch if data is > 10 mins old
+    if (articles.length === 0 || (now - lastFetch > 10 * 60 * 1000)) {
+      fetchFeed(false);
+    }
+  }, [fetchFeed, articles.length]); // Dependency on articles.length is safe
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between border-l-2 border-emerald-500 pl-6 mb-8">

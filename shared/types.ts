@@ -66,7 +66,7 @@ export interface SentinelLog {
   timestamp: number;
   event: string;
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
-  componentTag: string; // Android Hilt parity
+  componentTag: string;
   metadata?: Record<string, any>;
 }
 export interface VoltTrace {
@@ -86,7 +86,8 @@ export interface Report {
   lon: number;
   geohash: string;
   mediaIds: string[];
-  residencyHash?: string; // SHA256(street+salt)
+  residencyHash?: string;
+  parentUnitId?: string; // Added for DAG relationship tracking
 }
 export interface OutboxItem {
   id: string;
