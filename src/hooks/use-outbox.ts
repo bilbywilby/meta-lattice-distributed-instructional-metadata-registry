@@ -1,74 +1,70 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { db, addLog } from '@/lib/db';
-import { ReportStatus, SyncBatchStatus } from '@shared/types';
+import { OutboxItem, Report, ReportStatus } from '@shared/types';
 import { useLiveQuery } from 'dexie-react-hooks';
 export function useOutboxSync() {
-  const [syncStatus, setSyncStatus] = useState<SyncBatchStatus>(SyncBatchStatus.IDLE);
-  const syncLock = useRef(false);
-  const lastSyncTime = useRef(0);
-  const liveQueue = useLiveQuery(() => db.outbox.orderBy('id').toArray());
-  const queue = useMemo(() => liveQueue ?? [], [liveQueue]);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const queue = useLiveQuery(() => db.outbox.orderBy('id').toArray()) ?? [];
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
   const processQueue = useCallback(async () => {
-    // Prevent overlapping syncs or rapid fire calls
-    if (syncLock.current || !isOnline || queue.length === 0) return;
-    const now = Date.now();
-    if (now - lastSyncTime.current < 5000) return; // Minimum 5s between batch attempts
-    syncLock.current = true;
-    lastSyncTime.current = now;
-    setSyncStatus(SyncBatchStatus.BATCHING);
+    if (isSyncing || !isOnline || queue.length === 0) return;
+    setIsSyncing(true);
     const batchSize = 5;
     const batch = queue.slice(0, batchSize);
-    await addLog("WORK_MANAGER_DISPATCH", "INFO", { batch_size: batch.length });
-    setSyncStatus(SyncBatchStatus.UPLOADING);
     for (const item of batch) {
       try {
+        // Mock API Call for Phase 6
         const response = await fetch(`/api/v1/reports`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(item.payload)
         });
         if (response.ok) {
-          await db.transaction('rw', [db.reports, db.outbox, db.sentinel_logs], async () => {
-            await db.reports.update(item.payload.id, { status: ReportStatus.SYNCED });
-            await db.outbox.delete(item.id);
-            await addLog(`SYNC_OK: ${item.payload.id.slice(0,8)}`, 'INFO', { id: item.id, component: 'WorkManager' });
-          });
+          await db.reports.update(item.payload.id, { status: ReportStatus.SENT });
+          await db.outbox.delete(item.id);
+          await addLog(`SYNC_SUCCESS: ${item.opType}`, 'INFO', { id: item.id });
         } else {
-          throw new Error(`Worker Rejected: ${response.status}`);
+          throw new Error('Server rejected payload');
         }
       } catch (err) {
         const nextRetry = (item.retryCount || 0) + 1;
         if (nextRetry >= 5) {
-          await db.transaction('rw', [db.outbox, db.sentinel_logs], async () => {
-            await db.outbox.delete(item.id);
-            await addLog(`SYNC_FATAL: ${item.id.slice(0,8)}`, 'CRITICAL', { error: String(err), component: 'WorkManager' });
-          });
+          await db.reports.update(item.payload.id, { status: ReportStatus.FAILED });
+          await db.outbox.delete(item.id);
+          await addLog(`SYNC_FATAL: ${item.opType}`, 'CRITICAL', { id: item.id, err });
         } else {
-          await db.outbox.update(item.id, {
-            retryCount: nextRetry,
-            lastAttempt: Date.now()
+          await db.outbox.update(item.id, { 
+            retryCount: nextRetry, 
+            lastAttempt: Date.now() 
           });
-          await addLog(`SYNC_RETRY: ${item.id.slice(0,8)}`, 'WARNING', { retry: nextRetry, component: 'WorkManager' });
+          await addLog(`SYNC_RETRY: ${item.opType}`, 'WARNING', { id: item.id, retry: nextRetry });
         }
       }
     }
-    setSyncStatus(SyncBatchStatus.SUCCESS);
-    setTimeout(() => {
-      setSyncStatus(SyncBatchStatus.IDLE);
-      syncLock.current = false;
-    }, 2000);
-  }, [isOnline, queue]);
+    setIsSyncing(false);
+  }, [isSyncing, isOnline, queue]);
   useEffect(() => {
     if (isOnline && queue.length > 0) {
       const timer = setTimeout(processQueue, 3000);
       return () => clearTimeout(timer);
     }
   }, [isOnline, queue.length, processQueue]);
+  const enqueueReport = useCallback(async (report: Report) => {
+    await db.reports.add(report);
+    const outboxItem: OutboxItem = {
+      id: report.id,
+      opType: 'CREATE_REPORT',
+      payload: report,
+      retryCount: 0,
+      lastAttempt: Date.now()
+    };
+    await db.outbox.add(outboxItem);
+    await addLog(`REPORT_QUEUED: ${report.id}`, 'INFO');
+  }, []);
   return {
     queueSize: queue.length,
-    isSyncing: syncStatus !== SyncBatchStatus.IDLE,
-    syncStatus,
-    isOnline
+    isSyncing,
+    isOnline,
+    enqueueReport
   };
 }

@@ -4,7 +4,7 @@ export async function generateKeyPair(): Promise<{ publicKey: string; privateKey
       name: "ECDSA",
       namedCurve: "P-256",
     },
-    false, // Private key is not extractable for security
+    false,
     ["sign", "verify"]
   );
   const exportedPublic = await window.crypto.subtle.exportKey("spki", keyPair.publicKey);
@@ -22,7 +22,45 @@ export async function deriveNodeId(publicKeyBase64: string): Promise<string> {
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   return hashHex.slice(0, 12).toUpperCase();
 }
-export async function encryptPayload(data: string): Promise<string> {
-  // Placeholder for AES-256-GCM implementation
-  return btoa(`encrypted:${data}`);
+export function generateJitteredGeo(lat: number, lon: number) {
+  // Add approx ±500m random jitter
+  const jitterLat = (Math.random() - 0.5) * 0.009;
+  const jitterLon = (Math.random() - 0.5) * 0.012;
+  return {
+    lat: lat + jitterLat,
+    lon: lon + jitterLon
+  };
+}
+export function computeGeohash(lat: number, lon: number): string {
+  // Precision 6 implementation (~1.2km accuracy)
+  const chars = "0123456789bcdefghjkmnpqrstuvwxyz";
+  let geohash = "";
+  let minLat = -90, maxLat = 90;
+  let minLon = -180, maxLon = 180;
+  let bit = 0, ch = 0;
+  let even = true;
+  while (geohash.length < 6) {
+    if (even) {
+      let mid = (minLon + maxLon) / 2;
+      if (lon > mid) { ch |= (1 << (4 - bit)); minLon = mid; }
+      else maxLon = mid;
+    } else {
+      let mid = (minLat + maxLat) / 2;
+      if (lat > mid) { ch |= (1 << (4 - bit)); minLat = mid; }
+      else maxLat = mid;
+    }
+    even = !even;
+    if (bit < 4) bit++;
+    else {
+      geohash += chars[ch];
+      bit = 0; ch = 0;
+    }
+  }
+  return geohash;
+}
+export async function sha256(message: string): Promise<string> {
+  const msgUint8 = new TextEncoder().encode(message.trim().toLowerCase());
+  const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
 }

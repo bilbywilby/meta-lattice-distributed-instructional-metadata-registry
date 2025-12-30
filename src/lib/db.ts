@@ -1,16 +1,24 @@
 import Dexie, { type Table } from 'dexie';
-import { Identity, SentinelLog, OutboxItem } from '@shared/types';
+import { Identity, SentinelLog, OutboxItem, Report, MediaEntry, FeedItem } from '@shared/types';
 import { v4 as uuidv4 } from 'uuid';
 export class ValleyDB extends Dexie {
   identity!: Table<Identity>;
   sentinel_logs!: Table<SentinelLog>;
-  encrypted_outbox!: Table<OutboxItem>;
+  reports!: Table<Report>;
+  media!: Table<MediaEntry>;
+  outbox!: Table<OutboxItem>;
+  feed_cache!: Table<FeedItem>;
+  kv_store!: Table<{ key: string; value: any }>;
   constructor() {
     super('TheValleyHub_DB');
-    this.version(5).stores({
+    this.version(6).stores({
       identity: 'nodeId',
       sentinel_logs: 'id, timestamp',
-      encrypted_outbox: 'id'
+      reports: 'id, status, createdAt',
+      media: 'id, reportId',
+      outbox: 'id, lastAttempt',
+      feed_cache: 'id, fetchedAt, contentHash',
+      kv_store: 'key'
     });
   }
 }
@@ -34,6 +42,16 @@ export async function wipeSession() {
   window.location.reload();
 }
 export async function pruneLogs() {
-  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const now = Date.now();
+  // 1. Prune System Logs (24h)
+  const dayAgo = now - 24 * 60 * 60 * 1000;
   await db.sentinel_logs.where('timestamp').below(dayAgo).delete();
+  // 2. Prune Feed Cache (7 days or 50 items FIFO)
+  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
+  await db.feed_cache.where('fetchedAt').below(weekAgo).delete();
+  const feedCount = await db.feed_cache.count();
+  if (feedCount > 50) {
+    const oldest = await db.feed_cache.orderBy('fetchedAt').limit(feedCount - 50).toArray();
+    await db.feed_cache.bulkDelete(oldest.map(i => i.id));
+  }
 }

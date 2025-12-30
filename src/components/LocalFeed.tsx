@@ -1,80 +1,62 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { formatDistanceToNow } from "date-fns";
-import { RefreshCw, Hash, ExternalLink, AlertCircle } from "lucide-react";
-import { db } from "@/lib/db";
+import { Newspaper, ExternalLink, RefreshCw, AlertTriangle, Hash } from "lucide-react";
+import { db, addLog } from "@/lib/db";
 import { FeedItem } from "@shared/types";
 import { cn } from "@/lib/utils";
 import { sha256 } from "@/lib/crypto";
 export function LocalFeed() {
-  const liveArticles = useLiveQuery(() => db.news_cache.orderBy('fetchedAt').reverse().toArray());
-  const articles = useMemo(() => (liveArticles as FeedItem[]) ?? [], [liveArticles]);
+  const articles = useLiveQuery(() => db.feed_cache.orderBy('fetchedAt').reverse().toArray()) ?? [];
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const isFetchingRef = useRef(false);
-  const fetchFeed = React.useCallback(async () => {
-    if (isFetchingRef.current) return;
-    isFetchingRef.current = true;
+  const fetchFeed = async () => {
     setLoading(true);
-    setError(null);
     try {
       const response = await fetch('/api/v1/rss/regional');
-      if (!response.ok) throw new Error(`HTTP_${response.status}`);
       const data = await response.json();
       if (data.success && Array.isArray(data.data)) {
         for (const item of data.data) {
           const contentHash = await sha256(item.content);
-          const exists = await db.news_cache.where('contentHash').equals(contentHash).first();
+          const exists = await db.feed_cache.where('contentHash').equals(contentHash).first();
           if (!exists) {
-            await db.news_cache.add({
+            await db.feed_cache.add({
               ...item,
-              id: item.id || crypto.randomUUID(),
               contentHash,
               fetchedAt: Date.now()
             } as FeedItem);
           }
         }
+        await addLog("RSS_FEED_SYNCED", "INFO");
       }
     } catch (err) {
       console.error(err);
-      setError("Connectivity_Fault: RSS_Proxy_Down");
+      await addLog("RSS_SYNC_ERROR", "WARNING");
     } finally {
       setLoading(false);
-      isFetchingRef.current = false;
     }
-  }, []);
+  };
   useEffect(() => {
-    const lastFetch = articles[0]?.fetchedAt ?? 0;
-    const now = Date.now();
-    // Only auto-fetch if data is > 10 mins old or empty
-    if (articles.length === 0 || (now - lastFetch > 10 * 60 * 1000)) {
-      fetchFeed();
-    }
-  }, [fetchFeed, articles]); 
+    if (articles.length === 0) fetchFeed();
+  }, []);
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between border-l-2 border-emerald-500 pl-6 mb-8">
         <div>
-          <h1 className="text-2xl font-black italic text-white uppercase tracking-tighter">Live_Feed</h1>
-          <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">Regional_Intel // Verified</p>
+          <h1 className="text-2xl font-mono font-bold italic text-white uppercase tracking-tight">Regional_Feed</h1>
+          <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1">LV_Broadcast_Sync // No_Cookie_Proxy</p>
         </div>
-        <button
-          onClick={() => fetchFeed()}
+        <button 
+          onClick={fetchFeed} 
           disabled={loading}
-          className="size-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
+          className="size-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-colors disabled:opacity-50"
         >
-          <RefreshCw className={cn("size-4 text-emerald-500 transition-transform", loading && "animate-spin")} />
+          <RefreshCw className={cn("size-4 text-emerald-500", loading && "animate-spin")} />
         </button>
       </header>
-      {error && (
-        <div className="p-4 bg-rose-500/5 border border-rose-500/10 rounded-2xl flex items-center gap-3 text-[10px] font-mono text-rose-500 uppercase">
-          <AlertCircle className="size-4" /> {error}
-        </div>
-      )}
-      {articles.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {articles.map(article => (
-            <div key={article.id} className="p-5 rounded-3xl bg-[#040408] border border-slate-900 group hover:border-emerald-500/20 transition-all">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {articles.map(article => (
+          <div key={article.id} className="p-5 rounded-2xl bg-[#040408] border border-slate-900 group hover:border-emerald-500/20 transition-all flex flex-col justify-between">
+            <div>
               <div className="flex items-center justify-between mb-3">
                 <span className="text-[9px] font-mono font-bold text-emerald-500 uppercase tracking-widest flex items-center gap-1">
                   <Hash className="size-3" /> {article.source}
@@ -83,24 +65,28 @@ export function LocalFeed() {
                   {formatDistanceToNow(article.fetchedAt)} ago
                 </span>
               </div>
-              <h3 className="text-sm font-bold text-slate-200 leading-tight mb-2 group-hover:text-emerald-400 transition-colors">{article.title}</h3>
-              <p className="text-[11px] text-slate-500 font-mono line-clamp-2 leading-relaxed mb-4">{article.content}</p>
-              {article.link && (
-                <a
-                  href={article.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center justify-center gap-2 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400 uppercase hover:bg-emerald-500/10 hover:text-emerald-500 transition-all"
-                >
-                  <ExternalLink className="size-3" /> Launch_Proxy
-                </a>
-              )}
+              <h3 className="text-sm font-mono font-bold text-slate-200 leading-tight mb-2 group-hover:text-emerald-400 transition-colors">
+                {article.title}
+              </h3>
+              <p className="text-[11px] text-slate-500 font-mono line-clamp-2 leading-relaxed">
+                {article.content}
+              </p>
             </div>
-          ))}
-        </div>
-      ) : !loading && (
-        <div className="py-12 text-center border border-dashed border-slate-900 rounded-3xl">
-          <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">No_Live_Intelligence_Available</p>
+            <a 
+              href={article.link} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="mt-4 flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400 uppercase hover:bg-emerald-500/10 hover:text-emerald-500 hover:border-emerald-500/20 transition-all"
+            >
+              <ExternalLink className="size-3" /> External_Proxy_Launch
+            </a>
+          </div>
+        ))}
+      </div>
+      {articles.length === 0 && !loading && (
+        <div className="py-32 flex flex-col items-center justify-center border-2 border-dashed border-slate-900 rounded-3xl">
+          <AlertTriangle className="size-8 text-slate-700 mb-4" />
+          <p className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">Network_Empty // Manual_Refresh_Required</p>
         </div>
       )}
     </div>
