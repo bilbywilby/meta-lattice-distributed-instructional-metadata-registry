@@ -12,60 +12,53 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
     return c.json({
       success: true,
       data: { status: 'operational', system: 'META_LATTICE_V1.0_PROD' }
-    } satisfies ApiResponse);
+    } as any);
   });
   app.post('/api/publish', async (c) => {
     try {
       const body = await c.req.json();
       const isValid = validate(body);
       if (!isValid) {
-        const errResponse: ApiResponse = {
+        return c.json({
           success: false,
           error: "Schema Validation Failed",
           detail: ajv.errorsText(validate.errors)
-        };
-        return c.json(errResponse, 400);
+        } as any, 400);
       }
       const unit = body as unknown as InstructionalUnit;
       const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
       await stub.saveInstructionalUnit(unit);
-      const successResponse: ApiResponse = {
+      return c.json({
         success: true,
         data: { id: unit.id, status: 'ACCEPTED' }
-      };
-      return c.json(successResponse, 201);
+      } as any, 201);
     } catch (err) {
       console.error(`[PUBLISH_ERROR] ${err}`);
-      const failResponse: ApiResponse = { success: false, error: "Internal Registry Ingress Failure" };
-      return c.json(failResponse, 500);
+      return c.json({ success: false, error: "Internal Registry Ingress Failure" } as any, 500);
     }
   });
   app.get('/api/v1/ledger', async (c) => {
     try {
       const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
       const units = await stub.getInstructionalUnits();
-      const response: ApiResponse<InstructionalUnit[]> = {
+      return c.json({
         success: true,
         data: units
-      };
-      return c.json(response);
+      } as any);
     } catch (err) {
-      const failResponse: ApiResponse = { success: false, error: "Ledger access denied" };
-      return c.json(failResponse, 500);
+      return c.json({ success: false, error: "Ledger access denied" } as any, 500);
     }
   });
   app.get('/api/v1/stats', async (c) => {
     try {
       const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
       const stats = await stub.getRegistryStats();
-      const response: ApiResponse = {
+      return c.json({
         success: true,
         data: stats
-      };
-      return c.json(response);
+      } as any);
     } catch (err) {
-      const failResponse: ApiResponse = { success: false, error: "Stats retrieval failure" };
-      return c.json(failResponse, 500);
+      return c.json({ success: false, error: "Stats retrieval failure" } as any, 500);
     }
   });
 }

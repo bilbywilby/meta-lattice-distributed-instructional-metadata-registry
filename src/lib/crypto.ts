@@ -20,14 +20,22 @@ export async function deriveNodeId(publicKeyBase64: string): Promise<string> {
   const hashBuffer = await window.crypto.subtle.digest("SHA-256", data);
   const hashArray = Array.from(new Uint8Array(hashBuffer));
   const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  // 12-char hex ID for branding v0.8.2
+  // 12-char hex ID for branding v0.8.2 Android parity
   return hashHex.slice(0, 12).toUpperCase();
 }
+/**
+ * Perform the SHA256(street + salt) transformation described in the Android spec.
+ * Ensures raw text addresses never leave the device.
+ */
+export async function saltResidency(street: string, salt: string = "VALLEY_HUB_V1"): Promise<string> {
+  const message = `${street.trim().toUpperCase()}:${salt}`;
+  return await sha256(message);
+}
 export function generateJitteredGeo(lat: number, lon: number) {
-  // Exact ±0.0045 jitter factor (~500m) as per spec v0.8.2
-  // lat + (Math.random() * 0.009 - 0.0045)
-  const jitterLat = (Math.random() * 0.009) - 0.0045;
-  const jitterLon = (Math.random() * 0.009) - 0.0045;
+  // Exact ±0.0045 jitter factor (~500m) as per Android spec v0.8.2
+  // We use (Math.random() - 0.5) to center the jitter around the actual point
+  const jitterLat = (Math.random() - 0.5) * 0.009;
+  const jitterLon = (Math.random() - 0.5) * 0.009;
   return {
     lat: lat + jitterLat,
     lon: lon + jitterLon
@@ -52,7 +60,7 @@ export function computeGeohash(lat: number | null, lon: number | null): string {
       else maxLat = mid;
     }
     even = !even;
-    if (bit < 4) bit++;
+    if (bit < BitRangeEnd) bit++;
     else {
       geohash += chars[ch];
       bit = 0; ch = 0;
@@ -60,6 +68,7 @@ export function computeGeohash(lat: number | null, lon: number | null): string {
   }
   return geohash;
 }
+const BitRangeEnd = 4;
 export async function sha256(message: string): Promise<string> {
   const msgUint8 = new TextEncoder().encode(message.trim().toLowerCase());
   const hashBuffer = await window.crypto.subtle.digest('SHA-256', msgUint8);

@@ -15,18 +15,19 @@ export enum LatticeStatus {
   PUBLISHED = 'PUBLISHED',
   REVOKED = 'REVOKED'
 }
-export enum AggregatorTab {
-  HUB = 'HUB',
-  LOOP = 'LOOP',
-  INTEL = 'INTEL',
-  WIKI = 'WIKI'
-}
 export enum SentinelTab {
   TERMINAL = 'TERMINAL',
   REGISTRY = 'REGISTRY',
   MESH = 'MESH',
   SCHEMAS = 'SCHEMAS',
   SPECS = 'SPECS'
+}
+export enum SyncBatchStatus {
+  IDLE = 'IDLE',
+  BATCHING = 'BATCHING',
+  UPLOADING = 'UPLOADING',
+  SUCCESS = 'SUCCESS',
+  RETRYING = 'RETRYING'
 }
 export interface InstructionalUnit {
   id: string;
@@ -65,6 +66,7 @@ export interface SentinelLog {
   timestamp: number;
   event: string;
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
+  componentTag: string; // Android Hilt parity
   metadata?: Record<string, any>;
 }
 export interface VoltTrace {
@@ -84,6 +86,7 @@ export interface Report {
   lon: number;
   geohash: string;
   mediaIds: string[];
+  residencyHash?: string; // SHA256(street+salt)
 }
 export interface OutboxItem {
   id: string;
@@ -140,9 +143,4 @@ export interface LoopPost {
   content: string;
   likes: number;
   tags: string[];
-}
-export interface DemoItem {
-  id: string;
-  name: string;
-  value: number;
 }

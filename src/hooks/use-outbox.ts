@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { db, addLog } from '@/lib/db';
-import { OutboxItem, Report, ReportStatus } from '@shared/types';
+import { OutboxItem, Report, ReportStatus, SyncBatchStatus } from '@shared/types';
 import { useLiveQuery } from 'dexie-react-hooks';
 export function useOutboxSync() {
-  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<SyncBatchStatus>(SyncBatchStatus.IDLE);
   const syncLock = useRef(false);
   const liveQueue = useLiveQuery(() => db.outbox.orderBy('id').toArray());
   const queue = useMemo(() => liveQueue ?? [], [liveQueue]);
@@ -11,9 +11,12 @@ export function useOutboxSync() {
   const processQueue = useCallback(async () => {
     if (syncLock.current || !isOnline || queue.length === 0) return;
     syncLock.current = true;
-    setIsSyncing(true);
-    // Batch process top 5 items
-    const batch = queue.slice(0, 5);
+    setSyncStatus(SyncBatchStatus.BATCHING);
+    // Strictly batch 5 items per cycle as per Android WorkManager spec
+    const batchSize = 5;
+    const batch = queue.slice(0, batchSize);
+    await addLog("WORK_MANAGER_DISPATCH", "INFO", { batch_size: batch.length });
+    setSyncStatus(SyncBatchStatus.UPLOADING);
     for (const item of batch) {
       try {
         const response = await fetch(`/api/v1/reports`, {
@@ -25,7 +28,7 @@ export function useOutboxSync() {
           await db.transaction('rw', [db.reports, db.outbox, db.sentinel_logs], async () => {
             await db.reports.update(item.payload.id, { status: ReportStatus.SYNCED });
             await db.outbox.delete(item.id);
-            await addLog(`SYNC_OK: ${item.payload.id.slice(0,8)}`, 'INFO', { id: item.id });
+            await addLog(`SYNC_OK: ${item.payload.id.slice(0,8)}`, 'INFO', { id: item.id, component: 'WorkManager' });
           });
         } else {
           throw new Error(`Worker Rejected: ${response.status}`);
@@ -35,29 +38,31 @@ export function useOutboxSync() {
         if (nextRetry >= 5) {
           await db.transaction('rw', [db.outbox, db.sentinel_logs], async () => {
             await db.outbox.delete(item.id);
-            await addLog(`SYNC_FATAL: ${item.id.slice(0,8)}`, 'CRITICAL', { error: String(err) });
+            await addLog(`SYNC_FATAL: ${item.id.slice(0,8)}`, 'CRITICAL', { error: String(err), component: 'WorkManager' });
           });
         } else {
           await db.outbox.update(item.id, {
             retryCount: nextRetry,
             lastAttempt: Date.now()
           });
-          await addLog(`SYNC_RETRY: ${item.id.slice(0,8)}`, 'WARNING', { retry: nextRetry });
+          await addLog(`SYNC_RETRY: ${item.id.slice(0,8)}`, 'WARNING', { retry: nextRetry, component: 'WorkManager' });
         }
       }
     }
-    setIsSyncing(false);
+    setSyncStatus(SyncBatchStatus.SUCCESS);
+    setTimeout(() => setSyncStatus(SyncBatchStatus.IDLE), 2000);
     syncLock.current = false;
   }, [isOnline, queue]);
   useEffect(() => {
     if (isOnline && queue.length > 0) {
-      const timer = setTimeout(processQueue, 5000);
+      const timer = setTimeout(processQueue, 10000); // 10s intervals for batch processing
       return () => clearTimeout(timer);
     }
   }, [isOnline, queue.length, processQueue]);
   return {
     queueSize: queue.length,
-    isSyncing,
+    isSyncing: syncStatus !== SyncBatchStatus.IDLE,
+    syncStatus,
     isOnline
   };
 }
