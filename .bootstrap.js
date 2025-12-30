@@ -84,7 +84,8 @@ function runSetupCommands() {
     "bun add lucide-react@latest",
     "bun add zod",
     "bun add react-markdown remark-gfm",
-    "bun add rehype-raw"
+    "bun add rehype-raw",
+    "bun install react-markdown remark-gfm rehype-raw remark-math lucide-react clsx tailwind-merge date-fns dexie dexie-react-hooks"
 ];
     
     if (commands.length === 0) {
