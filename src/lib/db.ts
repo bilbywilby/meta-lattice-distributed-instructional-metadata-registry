@@ -1,68 +1,55 @@
 import Dexie, { type Table } from 'dexie';
-import { Identity, SentinelLog, OutboxItem, Report, MediaEntry, FeedItem } from '@shared/types';
-import { v4 as uuidv4 } from 'uuid';
-export class ValleyDB extends Dexie {
+import { 
+  Identity, 
+  NewsItem, 
+  LoopPost, 
+  WikiPage, 
+  WikiRevision, 
+  VoltTrace,
+  SentinelLog
+} from '@shared/types';
+export class ValleyAggregatorDB extends Dexie {
   identity!: Table<Identity>;
-  sentinel_logs!: Table<SentinelLog>;
-  reports!: Table<Report>;
-  media!: Table<MediaEntry>;
-  outbox!: Table<OutboxItem>;
-  feed_cache!: Table<FeedItem>;
+  news_cache!: Table<NewsItem & { fetchedAt: number }>;
+  loop_posts!: Table<LoopPost & { timestamp: number }>;
+  wiki_pages!: Table<WikiPage>;
+  wiki_revisions!: Table<WikiRevision>;
+  volt_traces!: Table<VoltTrace>;
   kv_store!: Table<{ key: string; value: any }>;
+  sentinel_logs!: Table<SentinelLog>;
   constructor() {
-    super('LehighValleyHub_Sentinel_v4');
+    super('TheValley_v1.1_Aggregator');
     this.version(1).stores({
       identity: 'nodeId',
-      sentinel_logs: 'id, timestamp, severity',
-      reports: 'id, status, createdAt',
-      media: 'id, reportId',
-      outbox: 'id, lastAttempt',
-      feed_cache: 'id, fetchedAt, contentHash',
-      kv_store: 'key'
+      news_cache: 'id, category, fetchedAt',
+      loop_posts: 'id, timestamp, userId',
+      wiki_pages: 'id, slug, category',
+      wiki_revisions: 'id, pageId, timestamp',
+      volt_traces: 'id, timestamp',
+      kv_store: 'key',
+      sentinel_logs: 'id, timestamp, severity'
     });
   }
 }
-export const db = new ValleyDB();
-export async function addLog(event: string, severity: SentinelLog['severity'] = 'INFO', metadata?: Record<string, any>) {
-  const log: SentinelLog = {
-    id: uuidv4(),
+export const db = new ValleyAggregatorDB();
+export async function addTrace(message: string, color: VoltTrace['color'] = 'blue') {
+  const trace: VoltTrace = {
+    id: crypto.randomUUID(),
     timestamp: Date.now(),
-    event,
-    severity,
-    metadata
+    message,
+    color
   };
-  await db.sentinel_logs.add(log);
+  await db.volt_traces.add(trace);
 }
-export async function clearCache() {
-  await db.transaction('rw', [db.feed_cache, db.sentinel_logs], async () => {
-    await db.feed_cache.clear();
-    await addLog("SYSTEM_CACHE_CLEARED", "WARNING");
-  });
-}
-export async function clearAllLogs() {
-  await db.sentinel_logs.clear();
-}
-export async function wipeSession() {
-  await db.delete();
-  localStorage.clear();
-  window.location.reload();
-}
-export async function pruneLogs() {
+export async function pruneData() {
   const now = Date.now();
   const dayAgo = now - 24 * 60 * 60 * 1000;
-  // Refined Pruning: keep most recent 50 logs regardless of age, then prune older than 24h
-  const allLogs = await db.sentinel_logs.orderBy('timestamp').reverse().toArray();
-  if (allLogs.length > 50) {
-    const idsToKeep = new Set(allLogs.slice(0, 50).map(l => l.id));
-    await db.sentinel_logs
-      .where('timestamp').below(dayAgo)
-      .and(log => !idsToKeep.has(log.id))
-      .delete();
+  await db.news_cache.where('fetchedAt').below(dayAgo).delete();
+  await db.volt_traces.where('timestamp').below(dayAgo).delete();
+  // Keep last 50 loop posts
+  const loopCount = await db.loop_posts.count();
+  if (loopCount > 50) {
+    const oldest = await db.loop_posts.orderBy('timestamp').limit(loopCount - 50).toArray();
+    await db.loop_posts.bulkDelete(oldest.map(p => p.id));
   }
-  // Prune old reports (24h)
-  await db.reports.where('createdAt').below(dayAgo).delete();
-  // Prune old feed cache (7d)
-  const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
-  await db.feed_cache.where('fetchedAt').below(weekAgo).delete();
-  await addLog("LOG_PRUNING_COMPLETE", "INFO", { timestamp: now });
 }

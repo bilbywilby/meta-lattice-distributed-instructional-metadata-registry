@@ -1,20 +1,18 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Zap, X, Terminal, Send, Cpu, ChevronRight, Activity } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, addTrace } from '@/lib/db';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
-import { VoltTrace } from '@shared/types';
 interface Message {
   id: string;
   role: 'agent' | 'user';
   text: string;
   data?: { label: string; value: string }[];
 }
-export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean; onClose: () => void, activeContext?: string }) {
-  const liveTraces = useLiveQuery(() => db.volt_traces.orderBy('timestamp').reverse().limit(15).toArray());
-  const traces = useMemo(() => (liveTraces as VoltTrace[]) ?? [], [liveTraces]);
+export function VoltAgent({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const traces = useLiveQuery(() => db.volt_traces.orderBy('timestamp').reverse().limit(15).toArray()) ?? [];
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', role: 'agent', text: "ORCHESTRATOR v2.0 READY. I am ValleyBot. How can I assist with regional data management today?" }
   ]);
@@ -30,19 +28,20 @@ export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean;
     setInput("");
     setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: userMsg }]);
     setIsProcessing(true);
-    await addTrace(`Supervisor: Query Received [Ctx: ${activeContext || 'Global'}]`, "blue");
+    // Simulated Processing Steps
+    await addTrace(`Supervisor: Intercepted query [${userMsg.slice(0, 15)}...]`, "blue");
     setTimeout(async () => {
-      await addTrace("Logic_Engine: Scanning regional knowledge vectors", "purple");
+      await addTrace("Logic_Engine: Searching regional knowledge vectors", "purple");
       setTimeout(async () => {
         await addTrace("Metric_Stream: Aggregating live Hub telemetry", "emerald");
-        setMessages(prev => [...prev, {
-          id: (Date.now() + 1).toString(),
-          role: 'agent',
-          text: `I've analyzed the ${activeContext ? activeContext.toLowerCase() : 'system'} data flows. Regional performance is within threshold parameters.`,
+        setMessages(prev => [...prev, { 
+          id: (Date.now() + 1).toString(), 
+          role: 'agent', 
+          text: "I've analyzed the current data flows. Traffic is peaking on Route 22, but the energy mesh is compensating for the increased load. Grid health remains at 99.8%.",
           data: [
             { label: "GRID_HEALTH", value: "99.8%" },
             { label: "NODES_ACTIVE", value: "1,244" },
-            { label: "CONTEXT", value: activeContext || 'GLOBAL' }
+            { label: "LATENCY", value: "4ms" }
           ]
         }]);
         setIsProcessing(false);
@@ -53,7 +52,7 @@ export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean;
     <AnimatePresence>
       {isOpen && (
         <>
-          <motion.div
+          <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
             className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[60]"
@@ -63,6 +62,7 @@ export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean;
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             className="fixed inset-y-0 right-0 z-[70] w-full md:w-[450px] bg-[#020205] border-l border-slate-900 shadow-2xl flex flex-col"
           >
+            {/* Header */}
             <header className="h-20 border-b border-slate-900 flex items-center justify-between px-6 bg-[#040408]">
               <div className="flex items-center gap-3">
                 <div className="relative">
@@ -76,6 +76,7 @@ export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean;
               </div>
               <button onClick={onClose} className="p-2 text-slate-600 hover:text-white transition-colors"><X className="size-5" /></button>
             </header>
+            {/* Trace Terminal */}
             <div className="h-48 border-b border-slate-900 bg-black overflow-hidden flex flex-col">
               <div className="flex items-center gap-2 px-4 py-1.5 border-b border-white/5 bg-white/5">
                 <Terminal className="size-3 text-slate-500" />
@@ -96,6 +97,7 @@ export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean;
                 ))}
               </div>
             </div>
+            {/* Chat Area */}
             <div ref={scrollRef} className="flex-1 p-6 overflow-y-auto space-y-6 bg-[#020205]">
               {messages.map(m => (
                 <div key={m.id} className={cn("flex", m.role === 'user' ? "justify-end" : "justify-start")}>
@@ -125,6 +127,7 @@ export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean;
                 </div>
               )}
             </div>
+            {/* Input */}
             <div className="p-6 border-t border-slate-900 bg-[#040408]">
               <div className="relative">
                 <input
@@ -134,7 +137,7 @@ export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean;
                   placeholder="Ask orchestrator..."
                   className="w-full h-12 bg-black border border-slate-800 rounded-xl pl-4 pr-12 text-sm font-mono text-white placeholder:text-slate-700 focus:border-blue-500/50 transition-colors"
                 />
-                <button
+                <button 
                   onClick={handleQuery}
                   disabled={!input.trim() || isProcessing}
                   className="absolute right-2 top-2 size-8 bg-blue-600 rounded-lg flex items-center justify-center text-white hover:bg-blue-500 disabled:opacity-30 transition-all active:scale-95"
