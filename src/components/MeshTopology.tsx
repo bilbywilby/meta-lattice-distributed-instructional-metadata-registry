@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Share2, Wifi, Search, Network, Radio, Globe, Activity, ShieldAlert } from "lucide-react";
+import React, { useState } from "react";
+import { Wifi, Search, ShieldAlert } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,11 +11,12 @@ export function MeshTopology() {
   const scanPeers = () => {
     setStatus('searching');
     addLog("P2P_SCAN_INITIATED", "INFO");
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       setStatus('connected');
       setPeers(Math.floor(Math.random() * 12) + 3);
       addLog("P2P_MESH_CONNECTED", "INFO", { stun: "stun.l.google.com" });
     }, 2500);
+    return () => clearTimeout(timer);
   };
   return (
     <div className="space-y-8 animate-fade-in">

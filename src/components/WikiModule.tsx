@@ -1,20 +1,22 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { Search, BookOpen, Clock, ChevronRight, Edit3, History, Save, FileText, ChevronDown, Plus } from 'lucide-react';
+import { Search, BookOpen, ChevronRight, Save, FileText, ChevronDown, Plus } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, addTrace } from '@/lib/db';
-import { WikiPage, WikiRevision } from '@shared/types';
+import { WikiPage } from '@shared/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 const DEFAULT_PAGES: WikiPage[] = [
   { id: '1', slug: 'overview', title: 'System_Overview', category: 'CORE', content: '# System Overview\nWelcome to The Valley Aggregator v1.1.', lastModified: Date.now() },
   { id: '2', slug: 'protocols', title: 'Network_Protocols', category: 'TECH', content: '# Network Protocols\nDetailing P2P and Mesh signaling.', lastModified: Date.now() },
 ];
 export function WikiModule() {
-  const pages = useLiveQuery(() => db.wiki_pages.toArray()) ?? [];
+  const livePages = useLiveQuery(() => db.wiki_pages.toArray());
+  const pages = useMemo(() => livePages ?? [], [livePages]);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [mode, setMode] = useState<'READ' | 'EDIT' | 'HISTORY'>('READ');
   const [search, setSearch] = useState("");
@@ -25,14 +27,15 @@ export function WikiModule() {
     }
     if (!activeId && pages.length > 0) setActiveId(pages[0].id);
   }, [pages, activeId]);
-  const activePage = pages.find(p => p.id === activeId) || pages[0];
-  const revisions = useLiveQuery(() => db.wiki_revisions.where('pageId').equals(activeId || '').reverse().sortBy('timestamp')) ?? [];
+  const activePage = useMemo(() => pages.find(p => p.id === activeId) || pages[0], [pages, activeId]);
+  const liveRevisions = useLiveQuery(() => db.wiki_revisions.where('pageId').equals(activeId || '').reverse().sortBy('timestamp'), [activeId]);
+  const revisions = useMemo(() => liveRevisions ?? [], [liveRevisions]);
   const handleEdit = () => {
-    setEditContent(activePage.content);
+    setEditContent(activePage?.content || "");
     setMode('EDIT');
   };
   const handleSave = async () => {
-    if (!activeId) return;
+    if (!activeId || !activePage) return;
     const title = editContent.split('\n')[0].replace('#', '').trim() || activePage.title;
     await db.wiki_pages.update(activeId, { content: editContent, title, lastModified: Date.now() });
     await db.wiki_revisions.add({
@@ -46,10 +49,9 @@ export function WikiModule() {
     await addTrace(`Wiki_Commit: Updated ${title}`, "blue");
     setMode('READ');
   };
-  const categories = Array.from(new Set(pages.map(p => p.category)));
+  const categories = useMemo(() => Array.from(new Set(pages.map(p => p.category))), [pages]);
   return (
     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 h-[calc(100vh-200px)] animate-fade-in">
-      {/* Sidebar Nav */}
       <aside className="md:col-span-1 flex flex-col space-y-4">
         <div className="relative">
           <Search className="absolute left-3 top-2.5 size-3.5 text-slate-600" />
@@ -86,7 +88,6 @@ export function WikiModule() {
           <Plus className="size-3" /> New_Page_Draft
         </button>
       </aside>
-      {/* Content */}
       <main className="md:col-span-3 flex flex-col bg-[#040408] border border-slate-900 rounded-3xl overflow-hidden shadow-2xl">
         <header className="h-12 border-b border-slate-900 px-6 flex items-center justify-between bg-slate-950/50 shrink-0">
           <div className="flex items-center gap-2 text-[10px] font-mono text-slate-500 uppercase tracking-widest">
@@ -105,7 +106,9 @@ export function WikiModule() {
           <div className="p-10 max-w-none">
             {mode === 'READ' && (
               <div className="prose prose-invert prose-slate max-w-none prose-headings:font-mono prose-headings:uppercase prose-headings:italic prose-p:text-slate-400 prose-code:text-blue-400">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{activePage?.content || ""}</ReactMarkdown>
+                <ErrorBoundary>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{activePage?.content || ""}</ReactMarkdown>
+                </ErrorBoundary>
               </div>
             )}
             {mode === 'EDIT' && (

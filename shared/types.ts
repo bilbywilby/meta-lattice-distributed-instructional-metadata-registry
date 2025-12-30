@@ -3,6 +3,33 @@ export interface Identity {
   publicKey: string;
   createdAt: string;
 }
+export enum ReportStatus {
+  DRAFT = 'DRAFT',
+  QUEUED = 'QUEUED',
+  SENT = 'SENT',
+  FAILED = 'FAILED',
+  LOCAL = 'LOCAL'
+}
+export interface Report {
+  id: string;
+  createdAt: number;
+  status: ReportStatus;
+  title: string;
+  street: string;
+  tags: string[];
+  lat: number;
+  lon: number;
+  geohash: string;
+  mediaIds: string[];
+  residencyCommitment?: string;
+}
+export interface OutboxItem {
+  id: string;
+  opType: string;
+  payload: any;
+  retryCount: number;
+  lastAttempt: number;
+}
 export interface ApiResponse<T = unknown> {
   success: boolean;
   data?: T;
@@ -25,6 +52,10 @@ export interface NewsItem {
   content: string;
   category: 'Economy' | 'Infrastructure' | 'Social' | 'Security';
 }
+export type FeedItem = NewsItem & { 
+  contentHash: string;
+  fetchedAt: number;
+};
 export interface LoopPost {
   id: string;
   userId: string;

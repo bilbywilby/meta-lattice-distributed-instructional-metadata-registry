@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import { 
-  Newspaper, 
-  Users, 
-  Activity, 
-  Book, 
-  Zap, 
-  Menu, 
+import {
+  Newspaper,
+  Users,
+  Activity,
+  Book,
+  Zap,
+  Menu,
   X,
-  Search,
   ChevronRight
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,6 +14,7 @@ import { AggregatorTab, Identity } from '@shared/types';
 import { HubModule } from './HubModule';
 import { LoopModule } from './LoopModule';
 import { WikiModule } from './WikiModule';
+import { IntelModule } from './IntelModule';
 import { VoltAgent } from './VoltAgent';
 import { cn } from '@/lib/utils';
 export function AggregatorUI({ identity }: { identity: Identity }) {
@@ -97,12 +97,12 @@ export function AggregatorUI({ identity }: { identity: Identity }) {
               {activeTab === AggregatorTab.HUB && <motion.div key="hub" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><HubModule /></motion.div>}
               {activeTab === AggregatorTab.LOOP && <motion.div key="loop" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><LoopModule /></motion.div>}
               {activeTab === AggregatorTab.WIKI && <motion.div key="wiki" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><WikiModule /></motion.div>}
-              {activeTab === AggregatorTab.INTEL && <div className="h-96 flex items-center justify-center border-2 border-dashed border-slate-900 rounded-3xl"><span className="text-[10px] font-mono text-slate-700 uppercase tracking-widest">Intel_Module_Encrypted</span></div>}
+              {activeTab === AggregatorTab.INTEL && <motion.div key="intel" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}><IntelModule /></motion.div>}
             </AnimatePresence>
           </div>
         </div>
       </main>
-      <VoltAgent isOpen={isVoltOpen} onClose={() => setIsVoltOpen(false)} />
+      <VoltAgent isOpen={isVoltOpen} onClose={() => setIsVoltOpen(false)} activeContext={activeTab} />
     </div>
   );
 }
