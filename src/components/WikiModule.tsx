@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, addTrace } from '@/lib/db';
-import { WikiPage } from '@shared/types';
+import { WikiPage, WikiRevision } from '@shared/types';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
@@ -28,8 +28,11 @@ export function WikiModule() {
     if (!activeId && pages.length > 0) setActiveId(pages[0].id);
   }, [pages, activeId]);
   const activePage = useMemo(() => pages.find(p => p.id === activeId) || pages[0], [pages, activeId]);
-  const liveRevisions = useLiveQuery(() => db.wiki_revisions.where('pageId').equals(activeId || '').reverse().sortBy('timestamp'), [activeId]);
-  const revisions = useMemo(() => liveRevisions ?? [], [liveRevisions]);
+  const liveRevisions = useLiveQuery(() => 
+    activeId ? db.wiki_revisions.where('pageId').equals(activeId).reverse().sortBy('timestamp') : Promise.resolve([]), 
+    [activeId]
+  );
+  const revisions = useMemo(() => (liveRevisions as WikiRevision[]) ?? [], [liveRevisions]);
   const handleEdit = () => {
     setEditContent(activePage?.content || "");
     setMode('EDIT');
@@ -84,9 +87,6 @@ export function WikiModule() {
             ))}
           </div>
         </ScrollArea>
-        <button className="w-full h-10 border border-dashed border-slate-800 rounded-xl flex items-center justify-center gap-2 text-[10px] font-mono text-slate-500 hover:text-white transition-colors">
-          <Plus className="size-3" /> New_Page_Draft
-        </button>
       </aside>
       <main className="md:col-span-3 flex flex-col bg-[#040408] border border-slate-900 rounded-3xl overflow-hidden shadow-2xl">
         <header className="h-12 border-b border-slate-900 px-6 flex items-center justify-between bg-slate-950/50 shrink-0">
@@ -133,7 +133,6 @@ export function WikiModule() {
                       <span className="text-[10px] font-mono font-bold text-slate-300">{rev.author} • {format(rev.timestamp, 'MMM dd HH:mm')}</span>
                       <span className="text-[9px] font-mono text-slate-600 uppercase">{rev.summary}</span>
                     </div>
-                    <button className="px-4 py-1.5 rounded-lg bg-slate-900 border border-slate-800 text-[9px] font-mono uppercase font-bold text-slate-500 hover:text-white transition-all">Revert</button>
                   </div>
                 ))}
               </div>

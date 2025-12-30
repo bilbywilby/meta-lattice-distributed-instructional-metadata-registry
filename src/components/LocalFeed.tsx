@@ -8,7 +8,7 @@ import { cn } from "@/lib/utils";
 import { sha256 } from "@/lib/crypto";
 export function LocalFeed() {
   const liveArticles = useLiveQuery(() => db.news_cache.orderBy('fetchedAt').reverse().toArray());
-  const articles = useMemo(() => liveArticles ?? [], [liveArticles]);
+  const articles = useMemo(() => (liveArticles as FeedItem[]) ?? [], [liveArticles]);
   const [loading, setLoading] = useState(false);
   const isFetching = useRef(false);
   const fetchFeed = React.useCallback(async (manual = false) => {
@@ -28,6 +28,7 @@ export function LocalFeed() {
           if (!exists) {
             await db.news_cache.add({
               ...item,
+              id: item.id || crypto.randomUUID(),
               contentHash,
               fetchedAt: Date.now()
             } as FeedItem);
@@ -74,10 +75,10 @@ export function LocalFeed() {
               <h3 className="text-sm font-bold text-slate-200 leading-tight mb-2 group-hover:text-emerald-400 transition-colors">{article.title}</h3>
               <p className="text-[11px] text-slate-500 font-mono line-clamp-2 leading-relaxed mb-4">{article.content}</p>
               {article.link && (
-                <a 
-                  href={article.link} 
-                  target="_blank" 
-                  rel="noopener noreferrer" 
+                <a
+                  href={article.link}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 py-2 rounded-xl bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400 uppercase hover:bg-emerald-500/10 hover:text-emerald-500 transition-all"
                 >
                   <ExternalLink className="size-3" /> Launch_Proxy

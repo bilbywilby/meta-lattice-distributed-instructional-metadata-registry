@@ -5,6 +5,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db, addTrace } from '@/lib/db';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { VoltTrace } from '@shared/types';
 interface Message {
   id: string;
   role: 'agent' | 'user';
@@ -13,7 +14,7 @@ interface Message {
 }
 export function VoltAgent({ isOpen, onClose, activeContext }: { isOpen: boolean; onClose: () => void, activeContext?: string }) {
   const liveTraces = useLiveQuery(() => db.volt_traces.orderBy('timestamp').reverse().limit(15).toArray());
-  const traces = useMemo(() => liveTraces ?? [], [liveTraces]);
+  const traces = useMemo(() => (liveTraces as VoltTrace[]) ?? [], [liveTraces]);
   const [messages, setMessages] = useState<Message[]>([
     { id: '1', role: 'agent', text: "ORCHESTRATOR v2.0 READY. I am ValleyBot. How can I assist with regional data management today?" }
   ]);

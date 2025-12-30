@@ -1,12 +1,21 @@
 export enum ReportStatus {
   LOCAL = 'LOCAL',
   QUEUED = 'QUEUED',
-  SYNCED = 'SYNCED'
+  SYNCED = 'SYNCED',
+  SENT = 'SENT'
 }
 export enum SentinelTab {
   TERMINAL = 'TERMINAL',
   MESH = 'MESH',
-  SPECS = 'SPECS'
+  SPECS = 'SPECS',
+  REGISTRY = 'REGISTRY',
+  SCHEMAS = 'SCHEMAS'
+}
+export enum AggregatorTab {
+  HUB = 'HUB',
+  LOOP = 'LOOP',
+  INTEL = 'INTEL',
+  WIKI = 'WIKI'
 }
 export interface Report {
   id: string;
@@ -27,6 +36,12 @@ export interface SentinelLog {
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
   metadata?: Record<string, any>;
 }
+export interface VoltTrace {
+  id: string;
+  timestamp: number;
+  message: string;
+  color: 'blue' | 'purple' | 'emerald' | 'rose' | 'amber';
+}
 export interface Identity {
   nodeId: string;
   publicKey: string;
@@ -45,14 +60,57 @@ export interface ApiResponse<T = unknown> {
   error?: string;
   [key: string]: any;
 }
+export interface SchemaField {
+  name: string;
+  type: 'string' | 'number' | 'boolean' | 'enum';
+  required: boolean;
+}
 export interface RegistrySchema {
   id: string;
   name: string;
   description: string;
   version: string;
-  fields: {
-    name: string;
-    type: 'string' | 'number' | 'boolean' | 'enum';
-    required: boolean;
-  }[];
+  fields: SchemaField[];
+}
+export interface FeedItem {
+  id: string;
+  title: string;
+  content: string;
+  source: string;
+  fetchedAt: number;
+  link?: string;
+  contentHash: string;
+}
+export interface WikiPage {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  content: string;
+  lastModified: number;
+}
+export interface WikiRevision {
+  id: string;
+  pageId: string;
+  author: string;
+  timestamp: number;
+  content: string;
+  summary: string;
+}
+export interface LoopPost {
+  id: string;
+  userId: string;
+  user: string;
+  avatar: string;
+  action: string;
+  location: string;
+  time: string;
+  content: string;
+  likes: number;
+  tags: string[];
+}
+export interface DemoItem {
+  id: string;
+  name: string;
+  value: number;
 }

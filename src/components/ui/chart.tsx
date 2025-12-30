@@ -2,8 +2,6 @@
 import * as React from "react"
 import { Legend, ResponsiveContainer, Tooltip } from "recharts"
 import { cn } from "@/lib/utils"
-// Helper to cast recharts internal payload to any to bypass TS error in standard shadcn boilerplate
-const getPayload = (p: any) => p as any[]
 const ChartContext = React.createContext<{ config: any } | null>(null)
 function useChart() {
   const context = React.useContext(ChartContext)
@@ -73,17 +71,11 @@ export const ChartTooltipContent = React.forwardRef<
         !labelKey && typeof label === "string"
           ? config[label]?.label || label
           : itemConfig?.label
-      if (labelFormatter) {
-        return (
-          <div className={cn("font-medium", labelClassName)}>
-            {labelFormatter(value, payload)}
-          </div>
-        )
-      }
-      if (!value) {
+      const formattedLabel = labelFormatter ? labelFormatter(value, payload) : value;
+      if (!formattedLabel) {
         return null
       }
-      return <div className={cn("font-medium", labelClassName)}>{value}</div>
+      return <div className={cn("font-medium", labelClassName)}>{formattedLabel as React.ReactNode}</div>
     }, [
       label,
       labelFormatter,
@@ -96,7 +88,7 @@ export const ChartTooltipContent = React.forwardRef<
     if (!active || !payload?.length) {
       return null
     }
-    const nestPayload = payload as any[]
+    const castPayload = payload as any[]
     return (
       <div
         ref={ref}
@@ -107,7 +99,7 @@ export const ChartTooltipContent = React.forwardRef<
       >
         {tooltipLabel}
         <div className="grid gap-1.5">
-          {nestPayload.map((item, index) => {
+          {castPayload.map((item, index) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = config[key]
             const indicatorColor = color || item.payload.fill || item.color
@@ -184,7 +176,7 @@ export const ChartLegendContent = React.forwardRef<
   if (!payload?.length) {
     return null
   }
-  const nestPayload = payload as any[]
+  const castPayload = payload as any[]
   return (
     <div
       ref={ref}
@@ -194,7 +186,7 @@ export const ChartLegendContent = React.forwardRef<
         className
       )}
     >
-      {nestPayload.map((item) => {
+      {castPayload.map((item) => {
         const key = `${nameKey || item.dataKey || "value"}`
         const itemConfig = config[key]
         return (
