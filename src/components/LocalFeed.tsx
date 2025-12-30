@@ -36,8 +36,10 @@ export function LocalFeed() {
     }
   };
   useEffect(() => {
-    if (articles.length === 0) fetchFeed();
-  }, []);
+    if (articles.length === 0) {
+      fetchFeed();
+    }
+  }, [articles.length]);
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between border-l-2 border-emerald-500 pl-6 mb-8">
@@ -48,9 +50,9 @@ export function LocalFeed() {
         <button 
           onClick={fetchFeed} 
           disabled={loading}
-          className="size-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-colors disabled:opacity-50"
+          className="size-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
         >
-          <RefreshCw className={cn("size-4 text-emerald-500", loading && "animate-spin")} />
+          <RefreshCw className={cn("size-4 text-emerald-500 transition-transform", loading && "animate-spin")} />
         </button>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

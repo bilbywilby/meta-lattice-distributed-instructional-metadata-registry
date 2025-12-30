@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ShieldCheck, Fingerprint, Ghost, Zap, Trash2, Cpu, EyeOff, Activity, Clock, Shield, Wifi, WifiOff, RefreshCcw, Radio } from "lucide-react";
+import { ShieldCheck, Fingerprint, Ghost, Zap, Trash2, Cpu, EyeOff, Activity, Clock, Shield, Wifi, WifiOff, RefreshCcw, Radio, Network, Database } from "lucide-react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { cn } from "@/lib/utils";
 import { wipeSession, db, addLog, clearAllLogs } from "@/lib/db";
@@ -8,13 +8,17 @@ import { format } from "date-fns";
 import { useOutboxSync } from "@/hooks/use-outbox";
 import { SentinelInput } from "@/components/SentinelInput";
 import { LocalFeed } from "@/components/LocalFeed";
+import { SentinelRegistry } from "@/components/SentinelRegistry";
+import { NodeGraph } from "@/components/NodeGraph";
 export function PrivacyUI({ identity }: { identity: Identity }) {
   const [activeTab, setActiveTab] = useState("SENTINEL");
   const { queueSize, isSyncing, isOnline } = useOutboxSync();
   const [pruneCountdown, setPruneCountdown] = useState(60);
+  const [tps, setTps] = useState(0.42);
   useEffect(() => {
     const timer = setInterval(() => {
       setPruneCountdown((prev) => (prev <= 1 ? 60 : prev - 1));
+      setTps(prev => Math.max(0.1, prev + (Math.random() - 0.5) * 0.1));
     }, 1000);
     return () => clearInterval(timer);
   }, []);
@@ -37,16 +41,18 @@ export function PrivacyUI({ identity }: { identity: Identity }) {
               <span className="text-sky-500 font-bold">{identity.nodeId}</span>
             </div>
             <div className="flex items-center justify-between text-[10px] font-mono">
-              <span className="text-slate-500">REGIONAL_NODES</span>
-              <span className="text-slate-300 font-bold">1,244</span>
+              <span className="text-slate-500">TPS</span>
+              <span className="text-slate-300 font-bold">{tps.toFixed(3)}</span>
             </div>
           </div>
         </div>
         <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-          <NavBtn icon={Activity} label="Sentinel Input" active={activeTab === "SENTINEL"} onClick={() => setActiveTab("SENTINEL")} />
+          <NavBtn icon={Activity} label="Sentinel Ingress" active={activeTab === "SENTINEL"} onClick={() => setActiveTab("SENTINEL")} />
+          <NavBtn icon={Database} label="Registry Browser" active={activeTab === "REGISTRY"} onClick={() => setActiveTab("REGISTRY")} />
+          <NavBtn icon={Network} label="Node Topology" active={activeTab === "TOPOLOGY"} onClick={() => setActiveTab("TOPOLOGY")} />
           <NavBtn icon={Zap} label="Regional Feed" active={activeTab === "FEED"} onClick={() => setActiveTab("FEED")} />
-          <NavBtn icon={Activity} label="Event Logs" active={activeTab === "LOGS"} onClick={() => setActiveTab("LOGS")} />
-          <NavBtn icon={Fingerprint} label="Key Vault" active={activeTab === "KEYS"} onClick={() => setActiveTab("KEYS")} />
+          <NavBtn icon={Activity} label="System Event Log" active={activeTab === "LOGS"} onClick={() => setActiveTab("LOGS")} />
+          <NavBtn icon={Fingerprint} label="Local Key Vault" active={activeTab === "KEYS"} onClick={() => setActiveTab("KEYS")} />
         </nav>
         <div className="p-4 border-t border-slate-900 space-y-2">
           <div className="flex items-center justify-between px-3 py-2 bg-slate-900/50 rounded-xl mb-4">
@@ -69,7 +75,7 @@ export function PrivacyUI({ identity }: { identity: Identity }) {
               isOnline ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20" : "bg-rose-500/10 text-rose-500 border-rose-500/20"
             )}>
               {isOnline ? <Wifi className="size-3" /> : <WifiOff className="size-3" />}
-              {isOnline ? 'Online' : 'Offline'}
+              {isOnline ? 'Network_Active' : 'Offline_Lockdown'}
             </div>
             {queueSize > 0 && (
               <div className="flex items-center gap-2 px-3 py-1 bg-sky-500/10 text-sky-500 border border-sky-500/20 rounded-full text-[10px] font-mono font-bold uppercase">
@@ -78,14 +84,16 @@ export function PrivacyUI({ identity }: { identity: Identity }) {
               </div>
             )}
           </div>
-          <div className="text-[10px] font-mono text-slate-600 uppercase tracking-widest">
-            LEHIGH_VALLEY_REGIONAL_HUB_OS // v0.6.0-BETA
+          <div className="text-[10px] font-mono text-slate-600 uppercase tracking-widest hidden sm:block">
+            LEHIGH_VALLEY_REGIONAL_HUB_OS // v0.6.1-BETA
           </div>
         </header>
         <main className="flex-1 overflow-y-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="py-8 md:py-10 lg:py-12">
               {activeTab === "SENTINEL" && <SentinelInput />}
+              {activeTab === "REGISTRY" && <SentinelRegistry />}
+              {activeTab === "TOPOLOGY" && <NodeGraph />}
               {activeTab === "FEED" && <LocalFeed />}
               {activeTab === "LOGS" && <SystemLogView />}
               {activeTab === "KEYS" && <KeyManagerView identity={identity} />}
@@ -101,12 +109,12 @@ function NavBtn({ icon: Icon, label, active, onClick }: any) {
     <button
       onClick={onClick}
       className={cn(
-        "w-full flex items-center gap-3 px-3 py-3 rounded-xl font-mono text-[11px] font-bold uppercase transition-all duration-200",
+        "w-full flex items-center gap-3 px-3 py-3 rounded-xl font-mono text-[11px] font-bold uppercase transition-all duration-200 text-left",
         active ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.1)]" : "text-slate-500 hover:text-slate-300 hover:bg-slate-900/50"
       )}
     >
-      <Icon className="size-4" />
-      {label}
+      <Icon className="size-4 shrink-0" />
+      <span className="truncate">{label}</span>
     </button>
   );
 }

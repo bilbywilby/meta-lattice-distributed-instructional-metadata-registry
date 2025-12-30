@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { db, addLog } from '@/lib/db';
 import { OutboxItem, Report, ReportStatus } from '@shared/types';
 import { useLiveQuery } from 'dexie-react-hooks';
 export function useOutboxSync() {
   const [isSyncing, setIsSyncing] = useState(false);
-  const queue = useLiveQuery(() => db.outbox.orderBy('id').toArray()) ?? [];
+  const liveQueue = useLiveQuery(() => db.outbox.orderBy('id').toArray());
+  const queue = useMemo(() => liveQueue ?? [], [liveQueue]);
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
   const processQueue = useCallback(async () => {
     if (isSyncing || !isOnline || queue.length === 0) return;
@@ -13,7 +14,6 @@ export function useOutboxSync() {
     const batch = queue.slice(0, batchSize);
     for (const item of batch) {
       try {
-        // Mock API Call for Phase 6
         const response = await fetch(`/api/v1/reports`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
