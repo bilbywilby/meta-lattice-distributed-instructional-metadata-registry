@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useLiveQuery } from "dexie-react-hooks";
 import { formatDistanceToNow } from "date-fns";
-import { Newspaper, ExternalLink, RefreshCw, AlertTriangle, Hash } from "lucide-react";
+import { RefreshCw, AlertTriangle, Hash, ExternalLink, CheckCircle } from "lucide-react";
 import { db, addLog } from "@/lib/db";
 import { FeedItem } from "@shared/types";
 import { cn } from "@/lib/utils";
@@ -9,12 +9,22 @@ import { sha256 } from "@/lib/crypto";
 export function LocalFeed() {
   const articles = useLiveQuery(() => db.feed_cache.orderBy('fetchedAt').reverse().toArray()) ?? [];
   const [loading, setLoading] = useState(false);
-  const fetchFeed = async () => {
+  const isFetching = useRef(false);
+  const fetchFeed = async (manual = false) => {
+    if (isFetching.current) return;
+    // Auto-fetch prevention: only sync if cache is empty or manual, or if last item is older than 30 mins
+    const now = Date.now();
+    const lastFetch = articles[0]?.fetchedAt ?? 0;
+    if (!manual && articles.length > 0 && now - lastFetch < 30 * 60 * 1000) {
+      return;
+    }
+    isFetching.current = true;
     setLoading(true);
     try {
       const response = await fetch('/api/v1/rss/regional');
       const data = await response.json();
       if (data.success && Array.isArray(data.data)) {
+        let newCount = 0;
         for (const item of data.data) {
           const contentHash = await sha256(item.content);
           const exists = await db.feed_cache.where('contentHash').equals(contentHash).first();
@@ -24,22 +34,22 @@ export function LocalFeed() {
               contentHash,
               fetchedAt: Date.now()
             } as FeedItem);
+            newCount++;
           }
         }
-        await addLog("RSS_FEED_SYNCED", "INFO");
+        await addLog("RSS_FEED_SYNCED", "INFO", { new_articles: newCount });
       }
     } catch (err) {
       console.error(err);
       await addLog("RSS_SYNC_ERROR", "WARNING");
     } finally {
       setLoading(false);
+      isFetching.current = false;
     }
   };
   useEffect(() => {
-    if (articles.length === 0) {
-      fetchFeed();
-    }
-  }, [articles.length]);
+    fetchFeed(false);
+  }, []);
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between border-l-2 border-emerald-500 pl-6 mb-8">
@@ -47,13 +57,21 @@ export function LocalFeed() {
           <h1 className="text-2xl font-mono font-bold italic text-white uppercase tracking-tight">Regional_Feed</h1>
           <p className="text-[10px] text-slate-500 font-mono uppercase tracking-[0.2em] mt-1">LV_Broadcast_Sync // No_Cookie_Proxy</p>
         </div>
-        <button 
-          onClick={fetchFeed} 
-          disabled={loading}
-          className="size-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
-        >
-          <RefreshCw className={cn("size-4 text-emerald-500 transition-transform", loading && "animate-spin")} />
-        </button>
+        <div className="flex items-center gap-3">
+          {!loading && articles.length > 0 && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/5 border border-emerald-500/10">
+              <CheckCircle className="size-3 text-emerald-500" />
+              <span className="text-[9px] font-mono text-emerald-500 font-bold uppercase">In_Sync</span>
+            </div>
+          )}
+          <button
+            onClick={() => fetchFeed(true)}
+            disabled={loading}
+            className="size-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
+          >
+            <RefreshCw className={cn("size-4 text-emerald-500 transition-transform", loading && "animate-spin")} />
+          </button>
+        </div>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {articles.map(article => (
@@ -74,9 +92,9 @@ export function LocalFeed() {
                 {article.content}
               </p>
             </div>
-            <a 
-              href={article.link} 
-              target="_blank" 
+            <a
+              href={article.link}
+              target="_blank"
               rel="noopener noreferrer"
               className="mt-4 flex items-center justify-center gap-2 py-2 rounded-lg bg-slate-900 border border-slate-800 text-[10px] font-mono font-bold text-slate-400 uppercase hover:bg-emerald-500/10 hover:text-emerald-500 hover:border-emerald-500/20 transition-all"
             >

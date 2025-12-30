@@ -3,7 +3,7 @@ import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { ReportStatus, Report } from "@shared/types";
 import { format } from "date-fns";
-import { Search, Download, Trash2, Eye } from "lucide-react";
+import { Search, Download, Trash2, Eye, RefreshCw } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableBody, TableHead, TableRow, TableCell } from "@/components/ui/table";
@@ -34,30 +34,40 @@ export function SentinelRegistry() {
       const json = await res.json();
       if (json.success) {
         setGlobalReports(json.data);
+      } else {
+        throw new Error(json.error || "Registry error");
       }
     } catch (err) {
       toast.error("Global registry unreachable");
+      setRegistryMode('LOCAL');
     } finally {
       setLoading(false);
     }
   };
   const filtered = useMemo(() => {
+    const term = search.toLowerCase().trim();
     return reports.filter(r => {
-      const matchesSearch = r.title.toLowerCase().includes(search.toLowerCase()) ||
-                           r.street.toLowerCase().includes(search.toLowerCase());
+      const matchesSearch = term === "" || 
+                           r.title.toLowerCase().includes(term) ||
+                           r.street.toLowerCase().includes(term) ||
+                           r.id.toLowerCase().includes(term);
       const matchesStatus = statusFilter === "ALL" || r.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
   }, [reports, search, statusFilter]);
   const bulkExport = () => {
+    if (filtered.length === 0) {
+      toast.error("No data to export");
+      return;
+    }
     const data = JSON.stringify(filtered, null, 2);
     const blob = new Blob([data], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sentinel_${registryMode.toLowerCase()}_export.json`;
+    a.download = `sentinel_${registryMode.toLowerCase()}_export_${Date.now()}.json`;
     a.click();
-    toast.success("Registry Ledger Exported");
+    toast.success(`Registry Ledger (${filtered.length} entries) Exported`);
   };
   return (
     <div className="space-y-6 animate-fade-in">
@@ -71,15 +81,18 @@ export function SentinelRegistry() {
         <div className="flex items-center gap-2">
           <div className="flex bg-[#040408] border border-slate-900 rounded-xl p-1 shadow-inner">
             <button
+              disabled={loading}
               onClick={() => setRegistryMode('LOCAL')}
-              className={cn("px-4 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all", registryMode === 'LOCAL' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:text-slate-300")}
+              className={cn("px-4 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all", registryMode === 'LOCAL' ? "bg-blue-600 text-white shadow-lg shadow-blue-900/20" : "text-slate-500 hover:text-slate-300 disabled:opacity-50")}
             >
               Local
             </button>
             <button
+              disabled={loading}
               onClick={() => setRegistryMode('GLOBAL')}
-              className={cn("px-4 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all", registryMode === 'GLOBAL' ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/20" : "text-slate-500 hover:text-slate-300")}
+              className={cn("px-4 py-1.5 rounded-lg text-[10px] font-mono font-bold uppercase transition-all flex items-center gap-2", registryMode === 'GLOBAL' ? "bg-emerald-600 text-white shadow-lg shadow-emerald-900/20" : "text-slate-500 hover:text-slate-300 disabled:opacity-50")}
             >
+              {loading && registryMode === 'GLOBAL' && <RefreshCw className="size-3 animate-spin" />}
               Global
             </button>
           </div>
@@ -91,11 +104,11 @@ export function SentinelRegistry() {
       <div className="grid grid-cols-1 sm:grid-cols-12 gap-4">
         <div className="sm:col-span-8 relative">
           <Search className="absolute left-3 top-3 size-4 text-slate-600" />
-          <Input 
-            placeholder="Search_Metadata_Context..." 
-            value={search} 
-            onChange={(e) => setSearch(e.target.value)} 
-            className="bg-[#040408] border-slate-900 font-mono text-[11px] pl-10 h-10 focus:border-blue-500/40 transition-colors" 
+          <Input
+            placeholder="Search_Metadata_Context..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="bg-[#040408] border-slate-900 font-mono text-[11px] pl-10 h-10 focus:border-blue-500/40 transition-colors"
           />
         </div>
         <div className="sm:col-span-4">

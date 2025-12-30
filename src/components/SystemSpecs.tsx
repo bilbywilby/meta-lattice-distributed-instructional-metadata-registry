@@ -1,10 +1,11 @@
 import React from "react";
-import { Cpu, ShieldCheck, Database, Fingerprint, Lock, Server, HardDrive, EyeOff } from "lucide-react";
+import { Lock, HardDrive, EyeOff, ShieldCheck } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { useLiveQuery } from "dexie-react-hooks";
 import { db } from "@/lib/db";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { SentinelLog } from "@shared/types";
 export function SystemSpecs() {
   const logs = useLiveQuery(() => db.sentinel_logs.orderBy('timestamp').reverse().limit(15).toArray()) ?? [];
   return (
@@ -67,19 +68,37 @@ export function SystemSpecs() {
     </div>
   );
 }
-function LogLine({ log }: { log: any }) {
+function LogLine({ log }: { log: SentinelLog }) {
+  const getSeverityStyle = (severity: SentinelLog['severity']) => {
+    switch (severity) {
+      case 'CRITICAL':
+        return "text-rose-500 bg-rose-500/5 border-rose-500/20";
+      case 'WARNING':
+        return "text-amber-500 bg-amber-500/5 border-amber-500/20";
+      default:
+        return "text-emerald-500 bg-emerald-500/5 border-emerald-500/20";
+    }
+  };
   return (
     <div className="flex items-center justify-between px-6 py-3 border-b border-slate-900/50 hover:bg-slate-900/20 transition-colors">
-      <div className="flex items-center gap-4">
-        <span className="text-[9px] font-mono text-slate-600 uppercase">{format(log.timestamp, "HH:mm:ss:SSS")}</span>
-        <span className="text-[10px] font-mono font-bold text-slate-300 uppercase italic truncate max-w-[200px]">{log.event}</span>
+      <div className="flex items-center gap-4 overflow-hidden">
+        <span className="text-[9px] font-mono text-slate-600 uppercase shrink-0">{format(log.timestamp, "HH:mm:ss:SSS")}</span>
+        <div className="flex flex-col truncate">
+          <span className="text-[10px] font-mono font-bold text-slate-300 uppercase italic truncate">{log.event}</span>
+          {log.metadata && (
+            <span className="text-[8px] font-mono text-slate-600 truncate">
+              {Object.entries(log.metadata).map(([k, v]) => `${k}:${v}`).join(' | ')}
+            </span>
+          )}
+        </div>
       </div>
-      <div className="flex items-center gap-3">
-        {log.event.includes("SCRUB") || log.event.includes("PRIVACY") || log.event.includes("SUCCESS") ? (
-          <span className="text-[9px] font-mono text-emerald-500 font-bold bg-emerald-500/5 px-2 py-0.5 rounded border border-emerald-500/20">SUCCESS</span>
-        ) : (
-          <span className="text-[9px] font-mono text-blue-500 font-bold bg-blue-500/5 px-2 py-0.5 rounded border border-blue-500/20">INFO</span>
-        )}
+      <div className="flex items-center gap-3 shrink-0">
+        <span className={cn(
+          "text-[9px] font-mono font-bold px-2 py-0.5 rounded border",
+          getSeverityStyle(log.severity)
+        )}>
+          {log.severity}
+        </span>
       </div>
     </div>
   );
