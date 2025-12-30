@@ -86,7 +86,8 @@ function runSetupCommands() {
     "bun add react-markdown remark-gfm",
     "bun add rehype-raw",
     "bun install react-markdown remark-gfm recharts dexie-react-hooks",
-    "bun add -D @cloudflare/vite-plugin@latest"
+    "bun add -D @cloudflare/vite-plugin@latest",
+    "bun add recharts@2.15.4"
 ];
     
     if (commands.length === 0) {
