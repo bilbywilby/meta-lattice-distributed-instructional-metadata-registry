@@ -80,7 +80,8 @@ function runSetupCommands() {
     const commands = [
     "bun add dexie",
     "bun add dexie-react-hooks",
-    "bun add uuid"
+    "bun add uuid",
+    "bun add lucide-react@latest"
 ];
     
     if (commands.length === 0) {
