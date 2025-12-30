@@ -33,13 +33,7 @@ export function ChartContainer({
 export const ChartTooltip = Tooltip
 export const ChartTooltipContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<typeof Tooltip> & {
-    hideLabel?: boolean
-    hideIndicator?: boolean
-    indicator?: "line" | "dot" | "dashed"
-    nameKey?: string
-    labelKey?: string
-  }
+  any // Use any here to bypass Recharts complex internal type conflicts with Radix/React
 >(
   (props, ref) => {
     const {
@@ -56,8 +50,6 @@ export const ChartTooltipContent = React.forwardRef<
       nameKey,
       labelKey,
     } = props
-    // Type-safe access for Recharts props that might not be in the base component props
-    const color = (props as any).color;
     const { config } = useChart()
     const tooltipLabel = React.useMemo(() => {
       if (hideLabel || !payload?.length) {
@@ -91,7 +83,6 @@ export const ChartTooltipContent = React.forwardRef<
     if (!active || !payload?.length) {
       return null
     }
-    const castPayload = payload as any[]
     return (
       <div
         ref={ref}
@@ -102,10 +93,10 @@ export const ChartTooltipContent = React.forwardRef<
       >
         {tooltipLabel}
         <div className="grid gap-1.5">
-          {castPayload.map((item, index) => {
+          {payload.map((item: any, index: number) => {
             const key = `${nameKey || item.name || item.dataKey || "value"}`
             const itemConfig = config[key]
-            const indicatorColor = color || item.payload.fill || item.color
+            const indicatorColor = item.payload.fill || item.color
             return (
               <div
                 key={item.dataKey || index}
@@ -171,17 +162,12 @@ ChartTooltipContent.displayName = "ChartTooltip"
 export const ChartLegend = Legend
 export const ChartLegendContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentProps<"div"> &
-    Pick<React.ComponentProps<typeof Legend>, "payload" | "verticalAlign"> & {
-      hideIcon?: boolean
-      nameKey?: string
-    }
+  any
 >(({ className, hideIcon = false, payload, verticalAlign, nameKey }, ref) => {
   const { config } = useChart()
   if (!payload?.length) {
     return null
   }
-  const castPayload = payload as any[]
   return (
     <div
       ref={ref}
@@ -191,7 +177,7 @@ export const ChartLegendContent = React.forwardRef<
         className
       )}
     >
-      {castPayload.map((item) => {
+      {payload.map((item: any) => {
         const key = `${nameKey || item.dataKey || "value"}`
         const itemConfig = config[key]
         return (
