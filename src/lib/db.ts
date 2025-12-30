@@ -23,6 +23,7 @@ export class SentinelV4DB extends Dexie {
   wiki_revisions!: Table<WikiRevision>;
   constructor() {
     super('LehighValleyHub_Sentinel_v4');
+    // version 5 is the stable current version
     this.version(5).stores({
       identity: 'nodeId',
       reports: 'id, createdAt, status, geohash',
@@ -35,39 +36,61 @@ export class SentinelV4DB extends Dexie {
       wiki_pages: 'id, slug, category',
       wiki_revisions: 'id, pageId, timestamp'
     });
+    // Handle HMR and multi-tab upgrades gracefully
+    this.on("versionchange", () => {
+      this.close();
+      if (typeof window !== 'undefined') {
+        console.warn("[DATABASE] New version detected. Connection closed to allow upgrade.");
+      }
+    });
   }
 }
 export const db = new SentinelV4DB();
 export async function addLog(event: string, severity: SentinelLog['severity'] = 'INFO', metadata?: Record<string, any>) {
-  const log: Omit<SentinelLog, 'id'> = {
-    timestamp: Date.now(),
-    event,
-    severity,
-    metadata
-  };
-  await db.sentinel_logs.add(log as any);
+  try {
+    const log: Omit<SentinelLog, 'id'> = {
+      timestamp: Date.now(),
+      event,
+      severity,
+      metadata
+    };
+    await db.sentinel_logs.add(log as any);
+  } catch (err) {
+    console.error(`[DB_LOG_ERROR] ${err}`);
+  }
 }
 export async function addTrace(message: string, color: VoltTrace['color'] = 'blue') {
-  const trace: Omit<VoltTrace, 'id'> = {
-    timestamp: Date.now(),
-    message,
-    color
-  };
-  await db.volt_traces.add(trace as any);
+  try {
+    const trace: Omit<VoltTrace, 'id'> = {
+      timestamp: Date.now(),
+      message,
+      color
+    };
+    await db.volt_traces.add(trace as any);
+  } catch (err) {
+    console.error(`[DB_TRACE_ERROR] ${err}`);
+  }
 }
 export async function pruneData() {
-  const now = Date.now();
-  const dayAgo = now - 24 * 60 * 60 * 1000;
-  await db.sentinel_logs.where('timestamp').below(dayAgo).delete();
-  await db.volt_traces.where('timestamp').below(dayAgo).delete();
-  await db.news_cache.where('fetchedAt').below(dayAgo).delete();
+  try {
+    const now = Date.now();
+    const dayAgo = now - 24 * 60 * 60 * 1000;
+    await db.sentinel_logs.where('timestamp').below(dayAgo).delete();
+    await db.volt_traces.where('timestamp').below(dayAgo).delete();
+    await db.news_cache.where('fetchedAt').below(dayAgo).delete();
+  } catch (err) {
+    console.error(`[DB_PRUNE_ERROR] ${err}`);
+  }
 }
 if (typeof window !== 'undefined') {
+  // Prune every hour
   setInterval(() => {
     pruneData().catch(console.error);
   }, 60 * 60 * 1000);
 }
 export async function wipeNode() {
   await db.delete();
-  window.location.reload();
+  if (typeof window !== 'undefined') {
+    window.location.reload();
+  }
 }

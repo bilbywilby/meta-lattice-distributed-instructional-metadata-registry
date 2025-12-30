@@ -25,7 +25,7 @@ export function ChartContainer({
         )}
         {...props}
       >
-        <ResponsiveContainer>{children}</ResponsiveContainer>
+        <ResponsiveContainer>{children as React.ReactElement}</ResponsiveContainer>
       </div>
     </ChartContext.Provider>
   )
@@ -41,8 +41,8 @@ export const ChartTooltipContent = React.forwardRef<
     labelKey?: string
   }
 >(
-  (
-    {
+  (props, ref) => {
+    const {
       active,
       payload,
       className,
@@ -53,12 +53,11 @@ export const ChartTooltipContent = React.forwardRef<
       labelFormatter,
       labelClassName,
       formatter,
-      color,
       nameKey,
       labelKey,
-    },
-    ref
-  ) => {
+    } = props
+    // Type-safe access for Recharts props that might not be in the base component props
+    const color = (props as any).color;
     const { config } = useChart()
     const tooltipLabel = React.useMemo(() => {
       if (hideLabel || !payload?.length) {
@@ -70,12 +69,16 @@ export const ChartTooltipContent = React.forwardRef<
       const value =
         !labelKey && typeof label === "string"
           ? config[label]?.label || label
-          : itemConfig?.label
-      const formattedLabel = labelFormatter ? labelFormatter(value, payload) : value;
+          : itemConfig?.label || label
+      const formattedLabel = labelFormatter ? labelFormatter(value, payload) : value
       if (!formattedLabel) {
         return null
       }
-      return <div className={cn("font-medium", labelClassName)}>{formattedLabel as React.ReactNode}</div>
+      return (
+        <div className={cn("font-medium", labelClassName)}>
+          {formattedLabel}
+        </div>
+      )
     }, [
       label,
       labelFormatter,
@@ -131,6 +134,8 @@ export const ChartTooltipContent = React.forwardRef<
                           {
                             "--color-bg": indicatorColor,
                             "--color-border": indicatorColor,
+                            backgroundColor: indicatorColor,
+                            borderColor: indicatorColor,
                           } as React.CSSProperties
                         }
                       />
