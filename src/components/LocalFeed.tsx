@@ -12,7 +12,7 @@ export function LocalFeed() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const isFetchingRef = useRef(false);
-  const fetchFeed = React.useCallback(async (manual = false) => {
+  const fetchFeed = React.useCallback(async () => {
     if (isFetchingRef.current) return;
     isFetchingRef.current = true;
     setLoading(true);
@@ -42,15 +42,15 @@ export function LocalFeed() {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, []); // Removed articles dependency to prevent render loop
+  }, []);
   useEffect(() => {
     const lastFetch = articles[0]?.fetchedAt ?? 0;
     const now = Date.now();
-    // Only auto-fetch if data is > 10 mins old
+    // Only auto-fetch if data is > 10 mins old or empty
     if (articles.length === 0 || (now - lastFetch > 10 * 60 * 1000)) {
-      fetchFeed(false);
+      fetchFeed();
     }
-  }, [fetchFeed, articles.length]); // Dependency on articles.length is safe
+  }, [fetchFeed, articles]); 
   return (
     <div className="space-y-6">
       <header className="flex items-center justify-between border-l-2 border-emerald-500 pl-6 mb-8">
@@ -59,7 +59,7 @@ export function LocalFeed() {
           <p className="text-[10px] text-slate-500 font-mono uppercase tracking-widest mt-1">Regional_Intel // Verified</p>
         </div>
         <button
-          onClick={() => fetchFeed(true)}
+          onClick={() => fetchFeed()}
           disabled={loading}
           className="size-10 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50"
         >

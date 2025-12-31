@@ -1,10 +1,9 @@
 import { Hono } from "hono";
 import { Env } from './core-utils';
-import { ApiResponse, InstructionalUnit, Report } from '@shared/types';
+import { ApiResponse, InstructionalUnit, Report, NewsItem } from '@shared/types';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import rawSchema from '../shared/schemas/instructional-unit.schema.json';
-// Simplify type for AJV to prevent deep instantiation errors
 const schema = rawSchema as any;
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
@@ -15,6 +14,38 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       success: true,
       data: { status: 'operational', system: 'META_LATTICE_V1.0_PROD' }
     } as ApiResponse<any>);
+  });
+  // News Consensus Feed
+  app.get('/api/v1/feed', async (c) => {
+    try {
+      const region = c.req.query('region');
+      const biasMax = parseFloat(c.req.query('bias_max') || '1.0');
+      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+      const items = await stub.getNewsFeed(region, biasMax);
+      return c.json({ success: true, data: items } as ApiResponse<NewsItem[]>);
+    } catch (err) {
+      return c.json({ success: false, error: "Feed retrieval failure" } as ApiResponse<any>, 500);
+    }
+  });
+  app.post('/api/v1/consensus/trigger', async (c) => {
+    try {
+      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+      const count = await stub.processConsensus();
+      return c.json({ success: true, data: { processed: count } } as ApiResponse<any>);
+    } catch (err) {
+      return c.json({ success: false, error: "Consensus engine failure" } as ApiResponse<any>, 500);
+    }
+  });
+  // News Ingress (Raw)
+  app.post('/api/v1/news/raw', async (c) => {
+    try {
+      const body = await c.req.json() as NewsItem;
+      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+      await stub.saveNewsRaw(body);
+      return c.json({ success: true, data: { id: body.id, status: 'RAW_INGESTED' } } as ApiResponse<any>);
+    } catch (err) {
+      return c.json({ success: false, error: "News raw ingest failure" } as ApiResponse<any>, 500);
+    }
   });
   // Instructional Unit Ingress
   app.post('/api/publish', async (c) => {
@@ -36,49 +67,8 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
         data: { id: unit.id, status: 'ACCEPTED' }
       } as ApiResponse<any>, 201);
     } catch (err) {
-      console.error(`[PUBLISH_ERROR] ${err}`);
       return c.json({ success: false, error: "Internal Registry Ingress Failure" } as ApiResponse<any>, 500);
     }
-  });
-  // Sentinel Report Ingress (Regional Observations)
-  app.get('/api/v1/reports', async (c) => {
-    try {
-      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
-      const reports = await stub.getReports();
-      return c.json({ success: true, data: reports } as ApiResponse<any>);
-    } catch (err) {
-      return c.json({ success: false, error: "Report retrieval failure" } as ApiResponse<any>, 500);
-    }
-  });
-  app.post('/api/v1/reports', async (c) => {
-    try {
-      const body = await c.req.json() as Report;
-      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
-      await stub.saveReport(body);
-      return c.json({ success: true, data: { id: body.id, status: 'COMMITTED' } } as ApiResponse<any>);
-    } catch (err) {
-      return c.json({ success: false, error: "Report persistence failure" } as ApiResponse<any>, 500);
-    }
-  });
-  // Ledger Access
-  app.get('/api/v1/ledger', async (c) => {
-    try {
-      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
-      const units = await stub.getInstructionalUnits();
-      return c.json({ success: true, data: units } as ApiResponse<any>);
-    } catch (err) {
-      return c.json({ success: false, error: "Ledger access denied" } as ApiResponse<any>, 500);
-    }
-  });
-  // RSS Regional Proxy Mock
-  app.get('/api/v1/rss/regional', (c) => {
-    return c.json({
-      success: true,
-      data: [
-        { id: 'rss_1', source: 'Lattice_Net', title: 'Registry Consensus Reached', content: 'Global nodes have verified the latest metadata batch.', fetchedAt: Date.now(), contentHash: 'abc1' },
-        { id: 'rss_2', source: 'Grid_Watch', title: 'Power Mesh Stability', content: 'Renewable energy clusters in Lehigh Valley showing 98% uptime.', fetchedAt: Date.now(), contentHash: 'abc2' }
-      ]
-    } as ApiResponse<any>);
   });
   app.get('/api/v1/stats', async (c) => {
     try {

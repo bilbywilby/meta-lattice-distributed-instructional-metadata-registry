@@ -15,6 +15,11 @@ export enum LatticeStatus {
   PUBLISHED = 'PUBLISHED',
   REVOKED = 'REVOKED'
 }
+export enum NewsStage {
+  RAW = 'RAW',
+  STAGED = 'STAGED',
+  CONSENSUS = 'CONSENSUS'
+}
 export enum SentinelTab {
   TERMINAL = 'TERMINAL',
   REGISTRY = 'REGISTRY',
@@ -22,12 +27,43 @@ export enum SentinelTab {
   SCHEMAS = 'SCHEMAS',
   SPECS = 'SPECS'
 }
+export enum AggregatorTab {
+  HUB = 'HUB',
+  LOOP = 'LOOP',
+  INTEL = 'INTEL',
+  WIKI = 'WIKI'
+}
 export enum SyncBatchStatus {
   IDLE = 'IDLE',
   BATCHING = 'BATCHING',
   UPLOADING = 'UPLOADING',
   SUCCESS = 'SUCCESS',
   RETRYING = 'RETRYING'
+}
+export interface NewsItem {
+  id: string;
+  stage: NewsStage;
+  title: string;
+  summary: string;
+  source: string;
+  timestamp: number;
+  region: string;
+  poliScore: number; // -1 to +1
+  reliability: number; // 0 to 1
+  agentVotes: Record<string, { vote: string; justification: string }>;
+  checksum: string;
+  link?: string;
+}
+export interface FeedParams {
+  region?: string;
+  biasMax?: number;
+  days?: number;
+  page?: number;
+}
+export interface DemoItem {
+  id: string;
+  name: string;
+  value: number;
 }
 export interface InstructionalUnit {
   id: string;
@@ -87,7 +123,7 @@ export interface Report {
   geohash: string;
   mediaIds: string[];
   residencyHash?: string;
-  parentUnitId?: string; // Added for DAG relationship tracking
+  parentUnitId?: string;
 }
 export interface OutboxItem {
   id: string;

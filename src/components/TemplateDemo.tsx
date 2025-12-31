@@ -1,80 +1,40 @@
-import { useEffect, useState } from 'react'
-import { Cpu, Database } from 'lucide-react'
-
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import type { ApiResponse, DemoItem } from '@shared/types'
-
-export const HAS_TEMPLATE_DEMO = true
-
-const glassCard = 'backdrop-blur-xl bg-white/60 dark:bg-black/20 border-white/20 dark:border-white/10 shadow-2xl'
-const glassRow = 'flex justify-between items-center p-2 rounded-md border border-white/10 bg-white/5 dark:bg-white/5'
-
-export function TemplateDemo() {
-  const [counter, setCounter] = useState<number>(0)
-  const [demoItems, setDemoItems] = useState<DemoItem[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    Promise.all([
-      fetch('/api/counter').then((res) => res.json()),
-      fetch('/api/demo').then((res) => res.json()),
-    ])
-      .then(([counterData, itemsData]: [ApiResponse<number>, ApiResponse<DemoItem[]>]) => {
-        if (counterData.success) setCounter(counterData.data ?? 0)
-        if (itemsData.success) setDemoItems(itemsData.data ?? [])
-      })
-      .finally(() => setLoading(false))
-  }, [])
-
-  const incrementCounter = async () => {
-    const res = await fetch('/api/counter/increment', { method: 'POST' })
-    const data = (await res.json()) as ApiResponse<number>
-    if (data.success && data.data !== undefined) setCounter(data.data)
-  }
-
+import React from "react";
+import { DemoItem } from "@shared/types";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Layers } from "lucide-react";
+interface TemplateDemoProps {
+  items: DemoItem[];
+  title?: string;
+}
+export function TemplateDemo({ items, title = "Template_Mock_Data" }: TemplateDemoProps): JSX.Element {
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      <Card className={glassCard}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Database className="h-5 w-5 text-blue-500" />
-            Durable Object Storage
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {loading ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
-          ) : demoItems.length ? (
-            demoItems.map((item) => (
-              <div key={item.id} className={glassRow}>
-                <span className="font-medium">{item.name}</span>
-                <span className="text-muted-foreground">Value: {item.value}</span>
+    <Card className="bg-[#040408] border-slate-900 rounded-3xl overflow-hidden shadow-2xl">
+      <CardHeader className="border-b border-slate-900 bg-slate-950/50">
+        <CardTitle className="text-xs font-mono font-bold uppercase tracking-[0.3em] flex items-center gap-3">
+          <Layers className="size-4 text-blue-500" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="p-6">
+        <div className="space-y-3">
+          {items.map((item) => (
+            <div key={item.id} className="flex items-center justify-between p-4 rounded-2xl bg-black border border-slate-900 group hover:border-blue-500/30 transition-all">
+              <div className="flex flex-col">
+                <span className="text-[10px] font-mono font-bold text-slate-300 uppercase">{item.name}</span>
+                <span className="text-[8px] font-mono text-slate-600 uppercase">ID: {item.id}</span>
               </div>
-            ))
-          ) : (
-            <div className="text-sm text-muted-foreground">No items yet.</div>
+              <div className="px-3 py-1 rounded-lg bg-blue-600/10 border border-blue-500/20 text-blue-400 font-mono font-black text-xs">
+                {item.value}
+              </div>
+            </div>
+          ))}
+          {items.length === 0 && (
+            <div className="py-12 text-center text-slate-700 font-mono text-[9px] uppercase italic tracking-widest">
+              No_Mock_Data_Present
+            </div>
           )}
-        </CardContent>
-      </Card>
-
-      <Card className={glassCard}>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Cpu className="h-5 w-5 text-green-500" />
-            Durable Object Counter
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="text-center">
-            <p className="text-4xl font-bold tabular-nums">{counter}</p>
-            <p className="text-sm text-muted-foreground">Persistent across refresh</p>
-          </div>
-          <Button onClick={incrementCounter} className="w-full" variant="outline">
-            Increment
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  )
+        </div>
+      </CardContent>
+    </Card>
+  );
 }
