@@ -1,13 +1,13 @@
 import { Hono } from "hono";
 import { Env } from './core-utils';
-import { ApiResponse, InstructionalUnit, Report, NewsItem } from '@shared/types';
+import { ApiResponse, InstructionalUnit, NewsItem } from '@shared/types';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import rawSchema from '../shared/schemas/instructional-unit.schema.json';
 const schema = rawSchema as any;
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
-const validate = ajv.compile(schema);
+const validate: any = ajv.compile(schema);
 export function userRoutes(app: Hono<{ Bindings: Env }>) {
   app.get('/api/health', (c) => {
     return c.json({
@@ -15,7 +15,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       data: { status: 'operational', system: 'META_LATTICE_V1.0_PROD' }
     } as ApiResponse<any>);
   });
-  // News Consensus Feed
   app.get('/api/v1/feed', async (c) => {
     try {
       const region = c.req.query('region');
@@ -36,7 +35,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return c.json({ success: false, error: "Consensus engine failure" } as ApiResponse<any>, 500);
     }
   });
-  // News Ingress (Raw)
   app.post('/api/v1/news/raw', async (c) => {
     try {
       const body = await c.req.json() as NewsItem;
@@ -47,7 +45,6 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return c.json({ success: false, error: "News raw ingest failure" } as ApiResponse<any>, 500);
     }
   });
-  // Instructional Unit Ingress
   app.post('/api/publish', async (c) => {
     try {
       const body = await c.req.json();
@@ -59,7 +56,7 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
           detail: ajv.errorsText(validate.errors)
         } as ApiResponse<any>, 400);
       }
-      const unit = body as unknown as InstructionalUnit;
+      const unit = body as InstructionalUnit;
       const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
       await stub.saveInstructionalUnit(unit);
       return c.json({

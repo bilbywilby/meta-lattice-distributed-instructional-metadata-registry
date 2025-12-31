@@ -8,6 +8,7 @@ export enum LatticeTab {
   PUBLISH = 'PUBLISH',
   LEDGER = 'LEDGER',
   SCHEMAS = 'SCHEMAS',
+  INTEL = 'INTEL',
   AUDIT = 'AUDIT'
 }
 export enum LatticeStatus {
@@ -103,6 +104,13 @@ export interface SentinelLog {
   event: string;
   severity: 'INFO' | 'WARNING' | 'CRITICAL';
   componentTag: string;
+  metadata?: Record<string, any>;
+}
+export interface LatticeEvent {
+  id: string;
+  timestamp: number;
+  event: string;
+  severity: 'INFO' | 'WARNING' | 'CRITICAL';
   metadata?: Record<string, any>;
 }
 export interface VoltTrace {
