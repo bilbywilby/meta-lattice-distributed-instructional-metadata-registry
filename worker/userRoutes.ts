@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { Env } from './core-utils';
-import { ApiResponse, InstructionalUnit, NewsItem } from '@shared/types';
+import { ApiResponse, InstructionalUnit, NewsItem, Report } from '@shared/types';
 import Ajv from 'ajv';
 import addFormats from 'ajv-formats';
 import rawSchema from '../shared/schemas/instructional-unit.schema.json';
@@ -8,11 +8,12 @@ const schema = rawSchema as any;
 const ajv = new Ajv({ allErrors: true });
 addFormats(ajv);
 const validate: any = ajv.compile(schema);
-export function userRoutes(app: Hono<{ Bindings: Env }>) {
+// Using Hono<any> to break the complex type recursion that causes TS2589
+export function userRoutes(app: Hono<any>) {
   app.get('/api/health', (c) => {
     return c.json({
       success: true,
-      data: { status: 'operational', system: 'META_LATTICE_V1.0_PROD' }
+      data: { status: 'operational', system: 'META_LATTICE_V1.1_STABLE' }
     } as ApiResponse<any>);
   });
   app.get('/api/v1/feed', async (c) => {
@@ -24,6 +25,15 @@ export function userRoutes(app: Hono<{ Bindings: Env }>) {
       return c.json({ success: true, data: items } as ApiResponse<NewsItem[]>);
     } catch (err) {
       return c.json({ success: false, error: "Feed retrieval failure" } as ApiResponse<any>, 500);
+    }
+  });
+  app.get('/api/v1/reports', async (c) => {
+    try {
+      const stub = c.env.GlobalDurableObject.get(c.env.GlobalDurableObject.idFromName("global"));
+      const reports = await stub.getReports();
+      return c.json({ success: true, data: reports } as ApiResponse<Report[]>);
+    } catch (err) {
+      return c.json({ success: false, error: "Reports retrieval failure" } as ApiResponse<any>, 500);
     }
   });
   app.post('/api/v1/consensus/trigger', async (c) => {

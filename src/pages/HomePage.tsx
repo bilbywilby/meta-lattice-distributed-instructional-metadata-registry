@@ -5,7 +5,7 @@ import { db } from '@/lib/db';
 import { PrivacyInitializer } from '@/components/PrivacyInitializer';
 import { LatticeUI } from '@/components/LatticeUI';
 import { Toaster } from '@/components/ui/sonner';
-import { Terminal, Shield } from 'lucide-react';
+import { Shield } from 'lucide-react';
 import { Identity } from '@shared/types';
 export function HomePage() {
   const [bootStatus, setBootStatus] = useState<'IDLE' | 'BOOTING' | 'READY'>('IDLE');
@@ -13,7 +13,7 @@ export function HomePage() {
   useEffect(() => {
     if (identity && bootStatus === 'IDLE') {
       setBootStatus('BOOTING');
-      const timer = setTimeout(() => setBootStatus('READY'), 3000);
+      const timer = setTimeout(() => setBootStatus('READY'), 2500);
       return () => clearTimeout(timer);
     }
   }, [identity, bootStatus]);
@@ -26,7 +26,7 @@ export function HomePage() {
     );
   }
   return (
-    <div className="min-h-screen bg-[#020205] text-slate-200 selection:bg-emerald-500/30">
+    <div className="min-h-screen bg-[#020205] text-slate-200 selection:bg-emerald-500/30 overflow-hidden">
       <AnimatePresence mode="wait">
         {bootStatus === 'BOOTING' ? (
           <motion.div
@@ -39,31 +39,31 @@ export function HomePage() {
               <div className="flex justify-center">
                 <motion.div
                   animate={{
-                    scale: [1, 1.1, 1],
+                    scale: [1, 1.15, 1],
                     rotateY: [0, 180, 360]
                   }}
-                  transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                  className="size-24 rounded-3xl bg-[#040408] border border-slate-900 flex items-center justify-center shadow-[0_0_40px_rgba(16,185,129,0.1)]"
+                  transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
+                  className="size-24 rounded-3xl bg-[#040408] border border-slate-900 flex items-center justify-center shadow-[0_0_60px_rgba(16,185,129,0.15)]"
                 >
                   <Shield className="size-12 text-emerald-500" />
                 </motion.div>
               </div>
               <div className="space-y-4 font-mono text-[8px] uppercase tracking-[0.4em] text-slate-600">
-                <BootLine label="META_LATTICE_V1.0_INIT" delay={0.2} />
-                <BootLine label="DISTRIBUTED_REGISTRY_READY" delay={0.8} />
-                <BootLine label="SCHEMA_ENGINE_STABLE" delay={1.4} />
-                <BootLine label="PEERING_NETWORK_ACTIVE" delay={2.0} />
+                <BootLine label="META_LATTICE_V1.1_STABLE" delay={0.2} />
+                <BootLine label="CANONICAL_LEDGER_SYNC" delay={0.7} />
+                <BootLine label="PEER_RELIABILITY_VERIFIED" delay={1.2} />
+                <BootLine label="INTERFACE_LOAD_BALANCED" delay={1.7} />
               </div>
-              <div className="h-0.5 bg-slate-900 rounded-full overflow-hidden">
+              <div className="h-0.5 bg-slate-900 rounded-full overflow-hidden shadow-inner">
                 <motion.div
                   initial={{ width: 0 }}
                   animate={{ width: "100%" }}
-                  transition={{ duration: 2.8, ease: "circIn" }}
+                  transition={{ duration: 2.3, ease: "circIn" }}
                   className="h-full bg-emerald-600 shadow-[0_0_15px_#10b981]"
                 />
               </div>
-              <p className="text-center font-mono text-[9px] text-slate-700 uppercase tracking-widest animate-pulse">
-                Authorizing Node ID: {identity.nodeId}
+              <p className="text-center font-mono text-[9px] text-slate-700 uppercase tracking-widest animate-pulse font-bold">
+                Auth NodeID: {identity.nodeId}
               </p>
             </div>
           </motion.div>
@@ -72,6 +72,7 @@ export function HomePage() {
             key="ui"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
+            transition={{ duration: 0.5 }}
             className="h-screen overflow-hidden"
           >
             <LatticeUI identity={identity as Identity} />
@@ -90,7 +91,7 @@ function BootLine({ label, delay }: { label: string; delay: number }) {
       transition={{ delay }}
       className="flex justify-between items-center"
     >
-      <span>{label}</span>
+      <span className="font-bold">{label}</span>
       <span className="text-emerald-500 font-black">[OK]</span>
     </motion.div>
   );
