@@ -89,7 +89,8 @@ function runSetupCommands() {
     "bun add -D @cloudflare/vite-plugin@latest",
     "bun add recharts@2.15.4",
     "bun add date-fns",
-    "bun add ajv ajv-formats"
+    "bun add ajv ajv-formats",
+    "bun add framer-motion"
 ];
     
     if (commands.length === 0) {
